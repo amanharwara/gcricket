@@ -18,6 +18,7 @@ type Team = {
 type Store = {
   players: Player[];
   addPlayer: (name: string) => void;
+  removePlayer: (id: string) => void;
 
   teams: Team[];
 };
@@ -29,6 +30,11 @@ export const useStore = create<Store>()(
       addPlayer: (name: string) => {
         set((state) => ({
           players: [...state.players, { id: nanoid(), name }],
+        }));
+      },
+      removePlayer: (id: string) => {
+        set((state) => ({
+          players: state.players.filter((player) => player.id !== id),
         }));
       },
 

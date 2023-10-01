@@ -4,7 +4,7 @@ import {
 } from "@react-navigation/drawer";
 import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
-import { Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import {
   Button,
   IconButton,
@@ -106,6 +106,8 @@ function PlayersScreen() {
   const [newPlayerName, setNewPlayerName] = useState("");
   const players = useStore((state) => state.players);
   const addPlayer = useStore((state) => state.addPlayer);
+  const removePlayer = useStore((state) => state.removePlayer);
+
   const addPlayerHandler = () => {
     if (!newPlayerName) return;
     addPlayer(newPlayerName);
@@ -138,9 +140,11 @@ function PlayersScreen() {
         />
         <IconButton
           icon="plus"
+          iconColor={MD3Colors.primary40}
           mode="contained"
           accessibilityLabel="Add player"
           onPress={addPlayerHandler}
+          style={{ backgroundColor: MD3Colors.primary90 }}
         />
       </View>
       {players.length > 0 ? (
@@ -175,6 +179,7 @@ function PlayersScreen() {
                 {player.name}
               </Text>
               <IconButton
+                size={20}
                 icon="pencil"
                 iconColor={MD3Colors.primary40}
                 mode="contained"
@@ -184,12 +189,30 @@ function PlayersScreen() {
                 }}
               />
               <IconButton
+                size={20}
                 icon="delete"
                 iconColor={MD3Colors.error40}
                 mode="contained"
                 style={{
                   backgroundColor: MD3Colors.error80,
                   marginLeft: 10,
+                }}
+                onPress={() => {
+                  Alert.alert(
+                    "Remove player",
+                    `Are you sure you want to remove ${player.name}?`,
+                    [
+                      {
+                        text: "Cancel",
+                        style: "cancel",
+                      },
+                      {
+                        text: "Remove",
+                        style: "destructive",
+                        onPress: () => removePlayer(player.id),
+                      },
+                    ]
+                  );
                 }}
               />
             </View>
