@@ -1,10 +1,12 @@
 import {
+  DrawerContentComponentProps,
+  DrawerContentScrollView,
   DrawerScreenProps,
   createDrawerNavigator,
 } from "@react-navigation/drawer";
 import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
-import { View } from "react-native";
+import { Appearance, View, useColorScheme } from "react-native";
 import {
   Button,
   Dialog,
@@ -18,6 +20,7 @@ import {
   TextInput,
   adaptNavigationTheme,
   useTheme,
+  Drawer,
 } from "react-native-paper";
 import { Player, useStore } from "./store";
 import { useMemo, useState } from "react";
@@ -170,7 +173,6 @@ function PlayerListItem({ player }: { player: Player }) {
             <TextInput
               mode="outlined"
               label="Player name"
-              style={{ flexGrow: 1, marginRight: 10 }}
               value={name}
               onChangeText={setName}
             />
@@ -264,10 +266,26 @@ function PlayersScreen() {
   );
 }
 
+function DrawerItems(props: DrawerContentComponentProps) {
+  return (
+    <DrawerContentScrollView>
+      <Drawer.Item
+        label="Matches"
+        onPress={() => props.navigation.navigate("Matches")}
+      />
+      <Drawer.Item
+        label="Players"
+        onPress={() => props.navigation.navigate("Players")}
+      />
+    </DrawerContentScrollView>
+  );
+}
+
 export default function App() {
   const hasStoreHydrated = useStore((state) => state._hasHydrated);
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === "dark";
 
   const Drawer = createDrawerNavigator<RootStackParamList>();
   const playersCount = useStore((state) => state.players.length);
@@ -313,6 +331,7 @@ export default function App() {
       <NavigationContainer theme={combinedTheme}>
         <Drawer.Navigator
           initialRouteName={playersCount > 1 ? "Matches" : "Players"}
+          drawerContent={(props) => <DrawerItems {...props} />}
         >
           <Drawer.Screen
             name="Matches"
