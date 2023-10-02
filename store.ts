@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import "react-native-get-random-values";
 import { nanoid } from "nanoid";
 
-type Player = {
+export type Player = {
   id: string;
   name: string;
 };
@@ -16,20 +16,41 @@ type Team = {
 };
 
 type Store = {
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
+
   players: Player[];
   addPlayer: (name: string) => void;
+  updatePlayer: (id: string, props: Omit<Partial<Player>, "id">) => void;
   removePlayer: (id: string) => void;
-
-  teams: Team[];
 };
+
+const KeysToIgnoreWhenPersisting: (keyof Store)[] = [
+  "_hasHydrated",
+  "setHasHydrated",
+];
 
 export const useStore = create<Store>()(
   persist(
     (set) => ({
+      _hasHydrated: false,
+      setHasHydrated: (state: boolean) => {
+        set({
+          _hasHydrated: state,
+        });
+      },
+
       players: [],
       addPlayer: (name: string) => {
         set((state) => ({
           players: [...state.players, { id: nanoid(), name }],
+        }));
+      },
+      updatePlayer: (id: string, props: Omit<Partial<Player>, "id">) => {
+        set((state) => ({
+          players: state.players.map((player) =>
+            player.id === id ? { ...player, ...props } : player
+          ),
         }));
       },
       removePlayer: (id: string) => {
@@ -37,12 +58,19 @@ export const useStore = create<Store>()(
           players: state.players.filter((player) => player.id !== id),
         }));
       },
-
-      teams: [],
     }),
     {
       name: "store",
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+      partialize: (state) =>
+        Object.fromEntries(
+          Object.entries(state).filter(
+            ([key]) => !KeysToIgnoreWhenPersisting.includes(key as keyof Store)
+          )
+        ),
     }
   )
 );
