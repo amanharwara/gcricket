@@ -15,6 +15,17 @@ type Team = {
   players: Player[];
 };
 
+// type ScoresForSingleInningsGame = {}
+
+// type ScoresForMultiInningsGame = {}
+
+export type Match = {
+  id: string;
+  teams: [Team, Team];
+  inningsPerSide: 1 | 2;
+  oversPerInning: 5 | 10 | 20 | 50 | typeof Infinity;
+};
+
 type Store = {
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
@@ -23,6 +34,8 @@ type Store = {
   addPlayer: (name: string) => void;
   updatePlayer: (id: string, props: Omit<Partial<Player>, "id">) => void;
   removePlayer: (id: string) => void;
+
+  matches: Match[];
 };
 
 const KeysToIgnoreWhenPersisting: (keyof Store)[] = [
@@ -58,6 +71,8 @@ export const useStore = create<Store>()(
           players: state.players.filter((player) => player.id !== id),
         }));
       },
+
+      matches: [],
     }),
     {
       name: "store",

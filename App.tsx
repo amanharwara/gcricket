@@ -21,8 +21,9 @@ import {
   adaptNavigationTheme,
   useTheme,
   Drawer,
+  SegmentedButtons,
 } from "react-native-paper";
-import { Player, useStore } from "./store";
+import { Match, Player, useStore } from "./store";
 import { useMemo, useState } from "react";
 import {
   DarkTheme as NavigationDarkTheme,
@@ -39,7 +40,17 @@ function MatchesScreen({
   navigation,
 }: DrawerScreenProps<RootStackParamList, "Matches">) {
   const theme = useTheme();
+
+  const matches = useStore((state) => state.matches);
   const playersCount = useStore((state) => state.players.length);
+
+  const [isCreating, setIsCreating] = useState(false);
+  const closeCreateDialog = () => setIsCreating(false);
+
+  const [inningsPerSide, setInningsPerSide] =
+    useState<Match["inningsPerSide"]>(1);
+  const [oversPerInning, setOversPerInning] =
+    useState<Match["oversPerInning"]>(5);
 
   if (playersCount < 2) {
     return (
@@ -74,15 +85,116 @@ function MatchesScreen({
         padding: 10,
       }}
     >
-      <View
-        style={{
-          padding: 15,
-          backgroundColor: theme.colors.secondaryContainer,
-          borderRadius: theme.roundness,
-        }}
-      >
-        <Text>Matches</Text>
-      </View>
+      {matches.length > 0 ? (
+        <View
+          style={{
+            padding: 15,
+            backgroundColor: theme.colors.secondaryContainer,
+            borderRadius: theme.roundness,
+          }}
+        >
+          <Text>Matches</Text>
+        </View>
+      ) : (
+        <View
+          style={{
+            paddingHorizontal: 20,
+          }}
+        >
+          <Text
+            style={{
+              textAlign: "center",
+              marginTop: 10,
+            }}
+          >
+            No matches found
+          </Text>
+          <Button
+            mode="contained"
+            style={{ marginTop: 10, marginHorizontal: 20 }}
+            icon={"plus"}
+            onPress={() => setIsCreating(true)}
+          >
+            Start match
+          </Button>
+        </View>
+      )}
+      <Portal>
+        <Dialog visible={isCreating} onDismiss={closeCreateDialog}>
+          <Dialog.Title>Start match</Dialog.Title>
+          <Dialog.Content
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Text variant="bodyLarge" style={{ marginRight: 20 }}>
+                Innings per side
+              </Text>
+              <SegmentedButtons
+                value={inningsPerSide.toString()}
+                onValueChange={(value) =>
+                  setInningsPerSide(parseInt(value) as 1 | 2)
+                }
+                density="small"
+                buttons={[
+                  { label: "1", value: "1" },
+                  { label: "2", value: "2" },
+                ]}
+                style={{
+                  flexShrink: 1,
+                }}
+              />
+            </View>
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 5,
+              }}
+            >
+              <Text variant="bodyLarge">Overs per inning</Text>
+              <SegmentedButtons
+                value={oversPerInning.toString()}
+                onValueChange={(value) =>
+                  value === "Infinity"
+                    ? setOversPerInning(Infinity)
+                    : setOversPerInning(parseInt(value))
+                }
+                density="small"
+                buttons={[
+                  { label: "5", value: "5", style: { minWidth: 5 } },
+                  { label: "10", value: "10", style: { minWidth: 5 } },
+                  { label: "20", value: "20", style: { minWidth: 5 } },
+                  { label: "50", value: "50", style: { minWidth: 5 } },
+                  { label: "∞", value: "Infinity", style: { minWidth: 5 } },
+                ]}
+                style={{
+                  flexShrink: 1,
+                }}
+              />
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={closeCreateDialog}>Cancel</Button>
+            {/* <Button
+              onPress={() => {
+                closeCreateDialog();
+              }}
+            >
+              Create
+            </Button> */}
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
