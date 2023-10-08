@@ -3,89 +3,99 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import "react-native-get-random-values";
 import { nanoid } from "nanoid";
+import { Instance, types } from "mobx-state-tree";
 
-export type Player = {
-  id: string;
-  name: string;
-};
+const Player = types.model({
+  id: types.identifier,
+  name: types.string,
+});
 
-type Team = {
-  id: string;
-  name: string;
-  players: Player[];
-};
+export type Player = Instance<typeof Player>;
 
-// type ScoresForSingleInningsGame = {}
+const Team = types.model({
+  id: types.identifier,
+  name: types.string,
+  players: types.array(types.reference(Player)),
+});
 
-// type ScoresForMultiInningsGame = {}
+const PlayerScore = types.model({
+  player: types.reference(Player),
+  score: types.array(types.number),
+  out: types.boolean,
+});
 
-export type Match = {
-  id: string;
-  teams: [Team, Team];
-  inningsPerSide: 1 | 2;
-  oversPerInning: 5 | 10 | 20 | 50 | typeof Infinity;
-};
+const Innings = types
+  .model({
+    id: types.identifier,
+    scores: types.array(PlayerScore),
+    team: types.reference(Team),
+    oversToPlay: types.number,
+    declared: types.boolean,
+  })
+  .views((self) => ({
+    get totalRuns() {
+      return self.scores.reduce(
+        (acc, curr) => acc + curr.score.reduce((acc, curr) => acc + curr, 0),
+        0
+      );
+    },
+    get oversPlayed() {
+      return self.scores.reduce((acc, curr) => acc + curr.score.length / 6, 0);
+    },
+  }))
+  .views((self) => ({
+    get isComplete() {
+      const oversCompleted = self.oversPlayed >= self.oversToPlay;
+      const allOut = self.scores.every((score) => score.out);
+      return oversCompleted || allOut || self.declared;
+    },
+  }))
+  .actions((self) => ({
+    addScore(player: Player, score: number) {
+      const playerScore = self.scores.find((score) => score.player === player);
+      if (!playerScore) return;
+      playerScore.score.push(score);
+    },
+    setOut(player: Player) {
+      const playerScore = self.scores.find((score) => score.player === player);
+      if (!playerScore) return;
+      playerScore.out = true;
+    },
+    declare() {
+      self.declared = true;
+    },
+  }));
 
-type Store = {
-  _hasHydrated: boolean;
-  setHasHydrated: (state: boolean) => void;
+const Match = types.model({
+  id: types.identifier,
+  name: types.string,
+  teams: types.array(Team),
+  innings: types.array(Innings),
+});
 
-  players: Player[];
-  addPlayer: (name: string) => void;
-  updatePlayer: (id: string, props: Omit<Partial<Player>, "id">) => void;
-  removePlayer: (id: string) => void;
+const RootStore = types
+  .model({
+    players: types.map(Player),
+  })
+  .views((self) => ({
+    get playersCount() {
+      return self.players.size;
+    },
+  }))
+  .actions((self) => ({
+    addPlayer(name: string) {
+      self.players.put({ id: nanoid(), name });
+    },
+    updatePlayer(id: string, name: string) {
+      const player = self.players.get(id);
+      if (!player) return;
+      player.name = name;
+    },
+    removePlayer(id: string) {
+      self.players.delete(id);
+    },
+  }));
 
-  matches: Match[];
-};
-
-const KeysToIgnoreWhenPersisting: (keyof Store)[] = [
-  "_hasHydrated",
-  "setHasHydrated",
-];
-
-export const useStore = create<Store>()(
-  persist(
-    (set) => ({
-      _hasHydrated: false,
-      setHasHydrated: (state: boolean) => {
-        set({
-          _hasHydrated: state,
-        });
-      },
-
-      players: [],
-      addPlayer: (name: string) => {
-        set((state) => ({
-          players: [...state.players, { id: nanoid(), name }],
-        }));
-      },
-      updatePlayer: (id: string, props: Omit<Partial<Player>, "id">) => {
-        set((state) => ({
-          players: state.players.map((player) =>
-            player.id === id ? { ...player, ...props } : player
-          ),
-        }));
-      },
-      removePlayer: (id: string) => {
-        set((state) => ({
-          players: state.players.filter((player) => player.id !== id),
-        }));
-      },
-
-      matches: [],
-    }),
-    {
-      name: "store",
-      storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
-      },
-      partialize: (state) =>
-        Object.fromEntries(
-          Object.entries(state).filter(
-            ([key]) => !KeysToIgnoreWhenPersisting.includes(key as keyof Store)
-          )
-        ),
-    }
-  )
-);
+export const store = RootStore.create({
+  players: {},
+});

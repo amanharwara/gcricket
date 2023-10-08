@@ -23,13 +23,14 @@ import {
   Drawer,
   SegmentedButtons,
 } from "react-native-paper";
-import { Match, Player, useStore } from "./store";
 import { useMemo, useState } from "react";
 import {
   DarkTheme as NavigationDarkTheme,
   DefaultTheme as NavigationDefaultTheme,
 } from "@react-navigation/native";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
+import { Player, store } from "./store";
+import { observer } from "mobx-react-lite";
 
 type RootStackParamList = {
   Matches: undefined;
@@ -41,18 +42,18 @@ function MatchesScreen({
 }: DrawerScreenProps<RootStackParamList, "Matches">) {
   const theme = useTheme();
 
-  const matches = useStore((state) => state.matches);
-  const playersCount = useStore((state) => state.players.length);
+  // const matches = useStore((state) => state.matches);
+  // const playersCount = useStore((state) => state.players.length);
 
   const [isCreating, setIsCreating] = useState(false);
   const closeCreateDialog = () => setIsCreating(false);
 
-  const [inningsPerSide, setInningsPerSide] =
-    useState<Match["inningsPerSide"]>(1);
-  const [oversPerInning, setOversPerInning] =
-    useState<Match["oversPerInning"]>(5);
+  // const [inningsPerSide, setInningsPerSide] =
+  //   useState<Match["inningsPerSide"]>(1);
+  // const [oversPerInning, setOversPerInning] =
+  //   useState<Match["oversPerInning"]>(5);
 
-  if (playersCount < 2) {
+  /* if (playersCount < 2) {
     return (
       <View
         style={{
@@ -77,7 +78,7 @@ function MatchesScreen({
         </Button>
       </View>
     );
-  }
+  } */
 
   return (
     <View
@@ -85,15 +86,42 @@ function MatchesScreen({
         padding: 10,
       }}
     >
-      {matches.length > 0 ? (
+      {/* {matches.length > 0 ? (
         <View
           style={{
-            padding: 15,
-            backgroundColor: theme.colors.secondaryContainer,
-            borderRadius: theme.roundness,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
           }}
         >
-          <Text>Matches</Text>
+          {matches.map((match) => (
+            <View
+              style={{
+                paddingVertical: 15,
+                paddingHorizontal: 20,
+                backgroundColor: theme.colors.secondaryContainer,
+                borderRadius: theme.roundness,
+              }}
+            >
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                  marginBottom: 5,
+                }}
+              >
+                {match.teams[0].name}
+              </Text>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                }}
+              >
+                {match.teams[1].name}
+              </Text>
+            </View>
+          ))}
         </View>
       ) : (
         <View
@@ -118,7 +146,7 @@ function MatchesScreen({
             Start match
           </Button>
         </View>
-      )}
+      )} */}
       <Portal>
         <Dialog visible={isCreating} onDismiss={closeCreateDialog}>
           <Dialog.Title>Start match</Dialog.Title>
@@ -139,7 +167,7 @@ function MatchesScreen({
               <Text variant="bodyLarge" style={{ marginRight: 20 }}>
                 Innings per side
               </Text>
-              <SegmentedButtons
+              {/* <SegmentedButtons
                 value={inningsPerSide.toString()}
                 onValueChange={(value) =>
                   setInningsPerSide(parseInt(value) as 1 | 2)
@@ -152,7 +180,7 @@ function MatchesScreen({
                 style={{
                   flexShrink: 1,
                 }}
-              />
+              /> */}
             </View>
             <View
               style={{
@@ -162,7 +190,7 @@ function MatchesScreen({
               }}
             >
               <Text variant="bodyLarge">Overs per inning</Text>
-              <SegmentedButtons
+              {/* <SegmentedButtons
                 value={oversPerInning.toString()}
                 onValueChange={(value) =>
                   value === "Infinity"
@@ -180,7 +208,7 @@ function MatchesScreen({
                 style={{
                   flexShrink: 1,
                 }}
-              />
+              /> */}
             </View>
           </Dialog.Content>
           <Dialog.Actions>
@@ -199,10 +227,8 @@ function MatchesScreen({
   );
 }
 
-function PlayerListItem({ player }: { player: Player }) {
+const PlayerListItem = observer(({ player }: { player: Player }) => {
   const theme = useTheme();
-  const updatePlayer = useStore((state) => state.updatePlayer);
-  const removePlayer = useStore((state) => state.removePlayer);
 
   const [isRemoving, setIsRemoving] = useState(false);
   const closeRemoveDialog = () => setIsRemoving(false);
@@ -271,7 +297,7 @@ function PlayerListItem({ player }: { player: Player }) {
             <Button onPress={closeRemoveDialog}>Cancel</Button>
             <Button
               onPress={() => {
-                removePlayer(player.id);
+                store.removePlayer(player.id);
                 closeRemoveDialog();
               }}
             >
@@ -293,7 +319,7 @@ function PlayerListItem({ player }: { player: Player }) {
             <Button onPress={closeEditDialog}>Cancel</Button>
             <Button
               onPress={() => {
-                updatePlayer(player.id, { name });
+                store.updatePlayer(player.id, name);
                 closeEditDialog();
               }}
             >
@@ -304,18 +330,17 @@ function PlayerListItem({ player }: { player: Player }) {
       </Portal>
     </View>
   );
-}
+});
 
-function PlayersScreen() {
+const PlayersScreen = observer(() => {
   const theme = useTheme();
 
   const [newPlayerName, setNewPlayerName] = useState("");
-  const players = useStore((state) => state.players);
-  const addPlayer = useStore((state) => state.addPlayer);
+  const players = Array.from(store.players.values());
 
   const addPlayerHandler = () => {
     if (!newPlayerName) return;
-    addPlayer(newPlayerName);
+    store.addPlayer(newPlayerName);
     setNewPlayerName("");
   };
 
@@ -376,7 +401,7 @@ function PlayersScreen() {
       )}
     </View>
   );
-}
+});
 
 function DrawerItems(props: DrawerContentComponentProps) {
   return (
@@ -393,14 +418,14 @@ function DrawerItems(props: DrawerContentComponentProps) {
   );
 }
 
-export default function App() {
-  const hasStoreHydrated = useStore((state) => state._hasHydrated);
+function App() {
+  // const hasStoreHydrated = useStore((state) => state._hasHydrated);
 
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
 
   const Drawer = createDrawerNavigator<RootStackParamList>();
-  const playersCount = useStore((state) => state.players.length);
+  const playersCount = store.playersCount;
 
   const { LightTheme, DarkTheme } = adaptNavigationTheme({
     reactNavigationLight: NavigationDefaultTheme,
@@ -434,9 +459,9 @@ export default function App() {
       : { ...MD3LightTheme, colors: mdTheme.light };
   }, [isDarkMode, mdTheme]);
 
-  if (!hasStoreHydrated) {
-    return <Text>Loading...</Text>;
-  }
+  // if (!hasStoreHydrated) {
+  //   return <Text>Loading...</Text>;
+  // }
 
   return (
     <PaperProvider theme={theme}>
@@ -461,3 +486,5 @@ export default function App() {
     </PaperProvider>
   );
 }
+
+export default observer(App);
