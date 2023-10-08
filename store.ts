@@ -12,11 +12,18 @@ const Player = types.model({
 
 export type Player = Instance<typeof Player>;
 
-const Team = types.model({
-  id: types.identifier,
-  name: types.string,
-  players: types.array(types.reference(Player)),
-});
+const Team = types
+  .model({
+    id: types.identifier,
+    players: types.array(types.reference(Player)),
+  })
+  .views((self) => ({
+    get name() {
+      return self.players.map((player) => player.name.at(0)).join("");
+    },
+  }));
+
+type Team = Instance<typeof Team>;
 
 const PlayerScore = types.model({
   player: types.reference(Player),
@@ -66,16 +73,35 @@ const Innings = types
     },
   }));
 
-const Match = types.model({
-  id: types.identifier,
-  name: types.string,
-  teams: types.array(Team),
-  innings: types.array(Innings),
-});
+const Match = types
+  .model({
+    id: types.identifier,
+    teams: types.array(Team),
+    innings: types.array(Innings),
+    oversPerInnings: types.number,
+    inningsPerTeam: types.number,
+    completedToss: types.boolean,
+  })
+  .views((self) => ({
+    get isComplete() {
+      return (
+        self.innings.length === self.inningsPerTeam * 2 &&
+        self.innings.every((innings) => innings.isComplete)
+      );
+    },
+  }))
+  .actions((self) => ({
+    addTeam(team: Team) {
+      self.teams.push(team);
+    },
+  }));
+
+export type Match = Instance<typeof Match>;
 
 const RootStore = types
   .model({
     players: types.map(Player),
+    matches: types.map(Match),
   })
   .views((self) => ({
     get playersCount() {
@@ -93,6 +119,39 @@ const RootStore = types
     },
     removePlayer(id: string) {
       self.players.delete(id);
+    },
+
+    addMatch(inningsPerTeam: number, oversPerInnings: number) {
+      const players = Array.from(self.players.values()).sort(
+        () => Math.random() - 0.5
+      );
+
+      const team1 = Team.create({
+        id: nanoid(),
+        players: players
+          .slice(0, players.length / 2)
+          .map((player) => player.id),
+      });
+
+      const team2 = Team.create({
+        id: nanoid(),
+        players: players
+          .slice(players.length / 2, players.length)
+          .map((player) => player.id),
+      });
+
+      const match = Match.create({
+        id: nanoid(),
+        teams: [],
+        innings: [],
+        inningsPerTeam,
+        oversPerInnings,
+        completedToss: false,
+      });
+      match.addTeam(team1);
+      match.addTeam(team2);
+
+      self.matches.put(match);
     },
   }));
 

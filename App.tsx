@@ -29,7 +29,7 @@ import {
   DefaultTheme as NavigationDefaultTheme,
 } from "@react-navigation/native";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
-import { Player, store } from "./store";
+import { Match, Player, store } from "./store";
 import { observer } from "mobx-react-lite";
 
 type RootStackParamList = {
@@ -42,18 +42,18 @@ function MatchesScreen({
 }: DrawerScreenProps<RootStackParamList, "Matches">) {
   const theme = useTheme();
 
-  // const matches = useStore((state) => state.matches);
-  // const playersCount = useStore((state) => state.players.length);
+  const matches = Array.from(store.matches.values());
+  const playersCount = store.playersCount;
 
   const [isCreating, setIsCreating] = useState(false);
   const closeCreateDialog = () => setIsCreating(false);
 
-  // const [inningsPerSide, setInningsPerSide] =
-  //   useState<Match["inningsPerSide"]>(1);
-  // const [oversPerInning, setOversPerInning] =
-  //   useState<Match["oversPerInning"]>(5);
+  const [inningsPerTeam, setInningsPerTeam] =
+    useState<Match["inningsPerTeam"]>(1);
+  const [oversPerInnings, setOversPerInnings] =
+    useState<Match["oversPerInnings"]>(5);
 
-  /* if (playersCount < 2) {
+  if (playersCount < 2) {
     return (
       <View
         style={{
@@ -78,7 +78,7 @@ function MatchesScreen({
         </Button>
       </View>
     );
-  } */
+  }
 
   return (
     <View
@@ -86,42 +86,74 @@ function MatchesScreen({
         padding: 10,
       }}
     >
-      {/* {matches.length > 0 ? (
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          {matches.map((match) => (
-            <View
-              style={{
-                paddingVertical: 15,
-                paddingHorizontal: 20,
-                backgroundColor: theme.colors.secondaryContainer,
-                borderRadius: theme.roundness,
-              }}
-            >
-              <Text
+      {matches.length > 0 ? (
+        <View>
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            {matches.map((match) => (
+              <View
                 style={{
-                  fontWeight: "bold",
-                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                  marginBottom: 5,
+                  paddingVertical: 15,
+                  paddingHorizontal: 20,
+                  backgroundColor: theme.colors.secondaryContainer,
+                  borderRadius: theme.roundness,
                 }}
               >
-                {match.teams[0].name}
-              </Text>
-              <Text
-                style={{
-                  fontWeight: "bold",
-                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                }}
-              >
-                {match.teams[1].name}
-              </Text>
-            </View>
-          ))}
+                <Text
+                  style={{
+                    marginBottom: 5,
+                  }}
+                >
+                  {match.oversPerInnings === Infinity
+                    ? "Unlimited"
+                    : match.oversPerInnings}
+                  -over match
+                  {match.inningsPerTeam === 2 && " (2 innings per team)"}
+                </Text>
+                <Text
+                  style={{
+                    fontWeight: "bold",
+                    fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                    textTransform: "uppercase",
+                    marginBottom: 3.5,
+                  }}
+                >
+                  {match.teams[0].name}
+                </Text>
+                <Text
+                  style={{
+                    fontWeight: "bold",
+                    fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {match.teams[1].name}
+                </Text>
+                {!match.completedToss && (
+                  <Text
+                    style={{
+                      marginTop: 7.5,
+                    }}
+                  >
+                    Toss remaining
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+          <Button
+            mode="contained"
+            style={{ marginTop: 10, marginHorizontal: 20 }}
+            icon={"plus"}
+            onPress={() => setIsCreating(true)}
+          >
+            Start match
+          </Button>
         </View>
       ) : (
         <View
@@ -146,7 +178,7 @@ function MatchesScreen({
             Start match
           </Button>
         </View>
-      )} */}
+      )}
       <Portal>
         <Dialog visible={isCreating} onDismiss={closeCreateDialog}>
           <Dialog.Title>Start match</Dialog.Title>
@@ -167,10 +199,10 @@ function MatchesScreen({
               <Text variant="bodyLarge" style={{ marginRight: 20 }}>
                 Innings per side
               </Text>
-              {/* <SegmentedButtons
-                value={inningsPerSide.toString()}
+              <SegmentedButtons
+                value={inningsPerTeam.toString()}
                 onValueChange={(value) =>
-                  setInningsPerSide(parseInt(value) as 1 | 2)
+                  setInningsPerTeam(parseInt(value) as 1 | 2)
                 }
                 density="small"
                 buttons={[
@@ -180,7 +212,7 @@ function MatchesScreen({
                 style={{
                   flexShrink: 1,
                 }}
-              /> */}
+              />
             </View>
             <View
               style={{
@@ -190,12 +222,12 @@ function MatchesScreen({
               }}
             >
               <Text variant="bodyLarge">Overs per inning</Text>
-              {/* <SegmentedButtons
-                value={oversPerInning.toString()}
+              <SegmentedButtons
+                value={oversPerInnings.toString()}
                 onValueChange={(value) =>
                   value === "Infinity"
-                    ? setOversPerInning(Infinity)
-                    : setOversPerInning(parseInt(value))
+                    ? setOversPerInnings(Infinity)
+                    : setOversPerInnings(parseInt(value))
                 }
                 density="small"
                 buttons={[
@@ -208,18 +240,19 @@ function MatchesScreen({
                 style={{
                   flexShrink: 1,
                 }}
-              /> */}
+              />
             </View>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={closeCreateDialog}>Cancel</Button>
-            {/* <Button
+            <Button
               onPress={() => {
+                store.addMatch(inningsPerTeam, oversPerInnings);
                 closeCreateDialog();
               }}
             >
               Create
-            </Button> */}
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
