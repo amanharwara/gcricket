@@ -4,9 +4,12 @@ import {
   DrawerScreenProps,
   createDrawerNavigator,
 } from "@react-navigation/drawer";
-import { NavigationContainer } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
-import { Appearance, View, useColorScheme } from "react-native";
+import { Pressable, View, useColorScheme } from "react-native";
 import {
   Button,
   Dialog,
@@ -31,234 +34,271 @@ import {
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { Match, Player, store } from "./store";
 import { observer } from "mobx-react-lite";
+import {
+  StackScreenProps,
+  createStackNavigator,
+} from "@react-navigation/stack";
 
 type RootStackParamList = {
+  Main: undefined;
+  Match: { id: string };
+};
+
+type DrawerParamList = {
   Matches: undefined;
   Players: undefined;
 };
 
-function MatchesScreen({
-  navigation,
-}: DrawerScreenProps<RootStackParamList, "Matches">) {
-  const theme = useTheme();
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
-  const matches = Array.from(store.matches.values());
-  const playersCount = store.playersCount;
+const MatchScreen = observer(
+  ({ navigation, route }: StackScreenProps<RootStackParamList, "Match">) => {
+    const { id } = route.params;
 
-  const [isCreating, setIsCreating] = useState(false);
-  const closeCreateDialog = () => setIsCreating(false);
+    const match = store.matches.get(id);
 
-  const [inningsPerTeam, setInningsPerTeam] =
-    useState<Match["inningsPerTeam"]>(1);
-  const [oversPerInnings, setOversPerInnings] =
-    useState<Match["oversPerInnings"]>(5);
+    if (!match) {
+      return <Text>Match not found</Text>;
+    }
 
-  if (playersCount < 2) {
     return (
-      <View
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 20,
-          paddingVertical: 30,
-        }}
-      >
-        <Text style={{ textAlign: "center", color: theme.colors.onBackground }}>
-          Not enough players found. You need at least 2 players to start a match
-        </Text>
-        <Button
-          mode="contained"
-          style={{ marginTop: 20 }}
-          icon={"plus"}
-          onPress={() => navigation.navigate("Players")}
-        >
-          Add players
-        </Button>
-      </View>
+      <Text>
+        {match.teams[0].name} vs {match.teams[1].name}
+      </Text>
     );
   }
+);
 
-  return (
-    <View
-      style={{
-        padding: 10,
-      }}
-    >
-      {matches.length > 0 ? (
-        <View>
-          <View
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            {matches.map((match) => (
-              <View
-                style={{
-                  paddingVertical: 15,
-                  paddingHorizontal: 20,
-                  backgroundColor: theme.colors.secondaryContainer,
-                  borderRadius: theme.roundness,
-                }}
-              >
-                <Text
-                  style={{
-                    marginBottom: 5,
-                  }}
-                >
-                  {match.oversPerInnings === Infinity
-                    ? "Unlimited"
-                    : match.oversPerInnings}
-                  -over match
-                  {match.inningsPerTeam === 2 && " (2 innings per team)"}
-                </Text>
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                    textTransform: "uppercase",
-                    marginBottom: 3.5,
-                  }}
-                >
-                  {match.teams[0].name}
-                </Text>
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {match.teams[1].name}
-                </Text>
-                {!match.completedToss && (
-                  <Text
-                    style={{
-                      marginTop: 7.5,
-                    }}
-                  >
-                    Toss remaining
-                  </Text>
-                )}
-              </View>
-            ))}
-          </View>
-          <Button
-            mode="contained"
-            style={{ marginTop: 10, marginHorizontal: 20 }}
-            icon={"plus"}
-            onPress={() => setIsCreating(true)}
-          >
-            Start match
-          </Button>
-        </View>
-      ) : (
+const MatchesScreen = observer(
+  ({ navigation }: DrawerScreenProps<DrawerParamList, "Matches">) => {
+    const theme = useTheme();
+
+    const matches = Array.from(store.matches.values());
+    const playersCount = store.playersCount;
+
+    const [isCreating, setIsCreating] = useState(false);
+    const closeCreateDialog = () => setIsCreating(false);
+
+    const [inningsPerTeam, setInningsPerTeam] =
+      useState<Match["inningsPerTeam"]>(1);
+    const [oversPerInnings, setOversPerInnings] =
+      useState<Match["oversPerInnings"]>(5);
+
+    if (playersCount < 2) {
+      return (
         <View
           style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
             paddingHorizontal: 20,
+            paddingVertical: 30,
           }}
         >
           <Text
-            style={{
-              textAlign: "center",
-              marginTop: 10,
-            }}
+            style={{ textAlign: "center", color: theme.colors.onBackground }}
           >
-            No matches found
+            Not enough players found. You need at least 2 players to start a
+            match
           </Text>
           <Button
             mode="contained"
-            style={{ marginTop: 10, marginHorizontal: 20 }}
+            style={{ marginTop: 20 }}
             icon={"plus"}
-            onPress={() => setIsCreating(true)}
+            onPress={() => navigation.navigate("Players")}
           >
-            Start match
+            Add players
           </Button>
         </View>
-      )}
-      <Portal>
-        <Dialog visible={isCreating} onDismiss={closeCreateDialog}>
-          <Dialog.Title>Start match</Dialog.Title>
-          <Dialog.Content
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
-              <Text variant="bodyLarge" style={{ marginRight: 20 }}>
-                Innings per side
-              </Text>
-              <SegmentedButtons
-                value={inningsPerTeam.toString()}
-                onValueChange={(value) =>
-                  setInningsPerTeam(parseInt(value) as 1 | 2)
-                }
-                density="small"
-                buttons={[
-                  { label: "1", value: "1" },
-                  { label: "2", value: "2" },
-                ]}
-                style={{
-                  flexShrink: 1,
-                }}
-              />
-            </View>
+      );
+    }
+
+    return (
+      <View
+        style={{
+          padding: 10,
+        }}
+      >
+        {matches.length > 0 ? (
+          <View>
             <View
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 5,
+                gap: 10,
               }}
             >
-              <Text variant="bodyLarge">Overs per inning</Text>
-              <SegmentedButtons
-                value={oversPerInnings.toString()}
-                onValueChange={(value) =>
-                  value === "Infinity"
-                    ? setOversPerInnings(Infinity)
-                    : setOversPerInnings(parseInt(value))
-                }
-                density="small"
-                buttons={[
-                  { label: "5", value: "5", style: { minWidth: 5 } },
-                  { label: "10", value: "10", style: { minWidth: 5 } },
-                  { label: "20", value: "20", style: { minWidth: 5 } },
-                  { label: "50", value: "50", style: { minWidth: 5 } },
-                  { label: "∞", value: "Infinity", style: { minWidth: 5 } },
-                ]}
-                style={{
-                  flexShrink: 1,
-                }}
-              />
+              {matches.map((match) => (
+                <Pressable
+                  onPress={() => {
+                    navigationRef.navigate("Match", { id: match.id });
+                  }}
+                  key={match.id}
+                >
+                  <View
+                    style={{
+                      paddingVertical: 15,
+                      paddingHorizontal: 20,
+                      backgroundColor: theme.colors.secondaryContainer,
+                      borderRadius: theme.roundness,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        marginBottom: 5,
+                      }}
+                    >
+                      {match.oversPerInnings === Infinity
+                        ? "Unlimited"
+                        : match.oversPerInnings}
+                      -over match
+                      {match.inningsPerTeam === 2 && " (2 innings per team)"}
+                    </Text>
+                    <Text
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                        marginBottom: 3.5,
+                      }}
+                    >
+                      {match.teams[0].name}
+                    </Text>
+                    <Text
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                      }}
+                    >
+                      {match.teams[1].name}
+                    </Text>
+                    {!match.completedToss && (
+                      <Text
+                        style={{
+                          marginTop: 7.5,
+                        }}
+                      >
+                        Toss remaining
+                      </Text>
+                    )}
+                  </View>
+                </Pressable>
+              ))}
             </View>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={closeCreateDialog}>Cancel</Button>
             <Button
-              onPress={() => {
-                store.addMatch(inningsPerTeam, oversPerInnings);
-                closeCreateDialog();
+              mode="contained"
+              style={{ marginTop: 10, marginHorizontal: 20 }}
+              icon={"plus"}
+              onPress={() => setIsCreating(true)}
+            >
+              Start match
+            </Button>
+          </View>
+        ) : (
+          <View
+            style={{
+              paddingHorizontal: 20,
+            }}
+          >
+            <Text
+              style={{
+                textAlign: "center",
+                marginTop: 10,
               }}
             >
-              Create
+              No matches found
+            </Text>
+            <Button
+              mode="contained"
+              style={{ marginTop: 10, marginHorizontal: 20 }}
+              icon={"plus"}
+              onPress={() => setIsCreating(true)}
+            >
+              Start match
             </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </View>
-  );
-}
+          </View>
+        )}
+        <Portal>
+          <Dialog visible={isCreating} onDismiss={closeCreateDialog}>
+            <Dialog.Title>Start match</Dialog.Title>
+            <Dialog.Content
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              <View
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Text variant="bodyLarge" style={{ marginRight: 20 }}>
+                  Innings per side
+                </Text>
+                <SegmentedButtons
+                  value={inningsPerTeam.toString()}
+                  onValueChange={(value) =>
+                    setInningsPerTeam(parseInt(value) as 1 | 2)
+                  }
+                  density="small"
+                  buttons={[
+                    { label: "1", value: "1" },
+                    { label: "2", value: "2" },
+                  ]}
+                  style={{
+                    flexShrink: 1,
+                  }}
+                />
+              </View>
+              <View
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 5,
+                }}
+              >
+                <Text variant="bodyLarge">Overs per inning</Text>
+                <SegmentedButtons
+                  value={oversPerInnings.toString()}
+                  onValueChange={(value) =>
+                    value === "Infinity"
+                      ? setOversPerInnings(Infinity)
+                      : setOversPerInnings(parseInt(value))
+                  }
+                  density="small"
+                  buttons={[
+                    { label: "5", value: "5", style: { minWidth: 5 } },
+                    { label: "10", value: "10", style: { minWidth: 5 } },
+                    { label: "20", value: "20", style: { minWidth: 5 } },
+                    { label: "50", value: "50", style: { minWidth: 5 } },
+                    { label: "∞", value: "Infinity", style: { minWidth: 5 } },
+                  ]}
+                  style={{
+                    flexShrink: 1,
+                  }}
+                />
+              </View>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={closeCreateDialog}>Cancel</Button>
+              <Button
+                onPress={() => {
+                  store.addMatch(inningsPerTeam, oversPerInnings);
+                  closeCreateDialog();
+                }}
+              >
+                Create
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+      </View>
+    );
+  }
+);
 
 const PlayerListItem = observer(({ player }: { player: Player }) => {
   const theme = useTheme();
@@ -451,14 +491,37 @@ function DrawerItems(props: DrawerContentComponentProps) {
   );
 }
 
+const MainScreen = observer(() => {
+  const Drawer = createDrawerNavigator<DrawerParamList>();
+
+  const playersCount = store.playersCount;
+
+  return (
+    <Drawer.Navigator
+      initialRouteName={playersCount > 1 ? "Matches" : "Players"}
+      drawerContent={(props) => <DrawerItems {...props} />}
+    >
+      <Drawer.Screen
+        name="Matches"
+        component={MatchesScreen}
+        options={{ title: "Matches" }}
+      />
+      <Drawer.Screen
+        name="Players"
+        component={PlayersScreen}
+        options={{ title: "Players" }}
+      />
+    </Drawer.Navigator>
+  );
+});
+
+const Stack = createStackNavigator<RootStackParamList>();
+
 function App() {
   // const hasStoreHydrated = useStore((state) => state._hasHydrated);
 
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
-
-  const Drawer = createDrawerNavigator<RootStackParamList>();
-  const playersCount = store.playersCount;
 
   const { LightTheme, DarkTheme } = adaptNavigationTheme({
     reactNavigationLight: NavigationDefaultTheme,
@@ -498,22 +561,19 @@ function App() {
 
   return (
     <PaperProvider theme={theme}>
-      <NavigationContainer theme={combinedTheme}>
-        <Drawer.Navigator
-          initialRouteName={playersCount > 1 ? "Matches" : "Players"}
-          drawerContent={(props) => <DrawerItems {...props} />}
-        >
-          <Drawer.Screen
-            name="Matches"
-            component={MatchesScreen}
-            options={{ title: "Matches" }}
+      <NavigationContainer theme={combinedTheme} ref={navigationRef}>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="Main"
+            component={MainScreen}
+            options={{ headerShown: false }}
           />
-          <Drawer.Screen
-            name="Players"
-            component={PlayersScreen}
-            options={{ title: "Players" }}
+          <Stack.Screen
+            name="Match"
+            component={MatchScreen}
+            // options={{ headerShown: false }}
           />
-        </Drawer.Navigator>
+        </Stack.Navigator>
         <StatusBar style="auto" />
       </NavigationContainer>
     </PaperProvider>

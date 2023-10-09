@@ -19,7 +19,10 @@ const Team = types
   })
   .views((self) => ({
     get name() {
-      return self.players.map((player) => player.name.at(0)).join("");
+      return self.players
+        .map((player) => player.name.at(0))
+        .join("")
+        .toLocaleUpperCase();
     },
   }));
 
