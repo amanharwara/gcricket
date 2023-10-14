@@ -32,7 +32,7 @@ import {
   DefaultTheme as NavigationDefaultTheme,
 } from "@react-navigation/native";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
-import { Match, Player, store } from "./store";
+import { Match, Player, Team, store } from "./store";
 import { observer } from "mobx-react-lite";
 import {
   StackScreenProps,
@@ -51,6 +51,132 @@ type DrawerParamList = {
 
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
+const Toss = observer(({ match }: { match: Match }) => {
+  const theme = useTheme();
+
+  const [teamThatWillCall, setTeamThatWillCall] = useState<Team>(
+    () => match.teams[Math.floor(Math.random() * 2)]
+  );
+  const [teamThatWonToss, setTeamThatWonToss] = useState<Team | null>(null);
+
+  const toss = (call: "heads" | "tails") => {
+    const result = Math.random() > 0.5 ? "heads" : "tails";
+    if (result === call) {
+      setTeamThatWonToss(teamThatWillCall);
+    } else {
+      setTeamThatWonToss(match.teams.find((t) => t !== teamThatWillCall)!);
+    }
+  };
+
+  if (!teamThatWonToss) {
+    return (
+      <View
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: 20,
+          gap: 15,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: theme.fonts.headlineSmall.fontSize,
+            textAlign: "center",
+            marginBottom: 5,
+          }}
+        >
+          <Text
+            style={{
+              fontWeight: "bold",
+            }}
+          >
+            {teamThatWillCall.name}
+          </Text>{" "}
+          will call
+        </Text>
+        <Button
+          onPress={() => {
+            toss("heads");
+          }}
+          mode="contained"
+          labelStyle={{
+            fontSize: theme.fonts.bodyLarge.fontSize,
+          }}
+        >
+          Heads
+        </Button>
+        <Button
+          onPress={() => {
+            toss("tails");
+          }}
+          mode="contained"
+          labelStyle={{
+            fontSize: theme.fonts.bodyLarge.fontSize,
+          }}
+        >
+          Tails
+        </Button>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: 20,
+        gap: 15,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: theme.fonts.headlineSmall.fontSize,
+          textAlign: "center",
+          marginBottom: 5,
+        }}
+      >
+        <Text
+          style={{
+            fontWeight: "bold",
+          }}
+        >
+          {teamThatWonToss.name}
+        </Text>{" "}
+        will pick
+      </Text>
+      <Button
+        onPress={() => {
+          match.startInnings(teamThatWonToss);
+          match.completeToss();
+        }}
+        mode="contained"
+        labelStyle={{
+          fontSize: theme.fonts.bodyLarge.fontSize,
+        }}
+      >
+        Bat
+      </Button>
+      <Button
+        onPress={() => {
+          match.startInnings(
+            teamThatWonToss === match.teams[0] ? match.teams[1] : match.teams[0]
+          );
+          match.completeToss();
+        }}
+        mode="contained"
+        labelStyle={{
+          fontSize: theme.fonts.bodyLarge.fontSize,
+        }}
+      >
+        Bowl
+      </Button>
+    </View>
+  );
+});
+
 const MatchScreen = observer(
   ({ navigation, route }: StackScreenProps<RootStackParamList, "Match">) => {
     const { id } = route.params;
@@ -59,6 +185,10 @@ const MatchScreen = observer(
 
     if (!match) {
       return <Text>Match not found</Text>;
+    }
+
+    if (!match.completedToss) {
+      return <Toss match={match} />;
     }
 
     return (
@@ -84,7 +214,7 @@ const MatchesScreen = observer(
     const [oversPerInnings, setOversPerInnings] =
       useState<Match["oversPerInnings"]>(5);
 
-    if (playersCount < 2) {
+    if (playersCount < 4) {
       return (
         <View
           style={{
@@ -99,7 +229,7 @@ const MatchesScreen = observer(
           <Text
             style={{ textAlign: "center", color: theme.colors.onBackground }}
           >
-            Not enough players found. You need at least 2 players to start a
+            Not enough players found. You need at least 4 players to start a
             match
           </Text>
           <Button
@@ -498,7 +628,7 @@ const MainScreen = observer(() => {
 
   return (
     <Drawer.Navigator
-      initialRouteName={playersCount > 1 ? "Matches" : "Players"}
+      initialRouteName={playersCount >= 4 ? "Matches" : "Players"}
       drawerContent={(props) => <DrawerItems {...props} />}
     >
       <Drawer.Screen
@@ -568,11 +698,7 @@ function App() {
             component={MainScreen}
             options={{ headerShown: false }}
           />
-          <Stack.Screen
-            name="Match"
-            component={MatchScreen}
-            // options={{ headerShown: false }}
-          />
+          <Stack.Screen name="Match" component={MatchScreen} />
         </Stack.Navigator>
         <StatusBar style="auto" />
       </NavigationContainer>

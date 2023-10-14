@@ -26,7 +26,7 @@ const Team = types
     },
   }));
 
-type Team = Instance<typeof Team>;
+export type Team = Instance<typeof Team>;
 
 const PlayerScore = types.model({
   player: types.reference(Player),
@@ -96,6 +96,19 @@ const Match = types
   .actions((self) => ({
     addTeam(team: Team) {
       self.teams.push(team);
+    },
+    startInnings(team: Team) {
+      const innings = Innings.create({
+        id: nanoid(),
+        team: team.id,
+        scores: [],
+        oversToPlay: self.oversPerInnings,
+        declared: false,
+      });
+      self.innings.push(innings);
+    },
+    completeToss() {
+      self.completedToss = true;
     },
   }));
 
