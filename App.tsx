@@ -39,6 +39,8 @@ import {
   createStackNavigator,
 } from "@react-navigation/stack";
 
+const isDev = process.env.NODE_ENV === "development";
+
 type RootStackParamList = {
   Main: undefined;
   Match: { id: string };
@@ -54,7 +56,7 @@ const navigationRef = createNavigationContainerRef<RootStackParamList>();
 const Toss = observer(({ match }: { match: Match }) => {
   const theme = useTheme();
 
-  const [teamThatWillCall, setTeamThatWillCall] = useState<Team>(
+  const [teamThatWillCall] = useState<Team>(
     () => match.teams[Math.floor(Math.random() * 2)]
   );
   const [teamThatWonToss, setTeamThatWonToss] = useState<Team | null>(null);
@@ -145,7 +147,7 @@ const Toss = observer(({ match }: { match: Match }) => {
         >
           {teamThatWonToss.name}
         </Text>{" "}
-        will pick
+        won! Choose:
       </Text>
       <Button
         onPress={() => {
@@ -178,7 +180,9 @@ const Toss = observer(({ match }: { match: Match }) => {
 });
 
 const MatchScreen = observer(
-  ({ navigation, route }: StackScreenProps<RootStackParamList, "Match">) => {
+  ({ route }: StackScreenProps<RootStackParamList, "Match">) => {
+    const theme = useTheme();
+
     const { id } = route.params;
 
     const match = store.matches.get(id);
@@ -192,9 +196,69 @@ const MatchScreen = observer(
     }
 
     return (
-      <Text>
-        {match.teams[0].name} vs {match.teams[1].name}
-      </Text>
+      <View
+        style={{
+          paddingVertical: 15,
+          paddingHorizontal: 20,
+          backgroundColor: theme.colors.secondaryContainer,
+        }}
+      >
+        <Text
+          style={{
+            marginBottom: 5,
+          }}
+        >
+          {match.oversPerInnings === Infinity
+            ? "Unlimited"
+            : match.oversPerInnings}
+          -over match
+          {match.inningsPerTeam === 2 && " (2 innings per team)"}
+        </Text>
+        {match.teams.map((team) => (
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 3.5,
+              opacity: match.currentInnings.team === team ? 1 : 0.5,
+            }}
+            key={team.id}
+          >
+            <Text
+              style={{
+                fontWeight: "bold",
+                fontSize: theme.fonts.bodyLarge.fontSize + 2,
+              }}
+            >
+              {team.name}
+            </Text>
+            <Text
+              style={{
+                fontWeight: "bold",
+                fontSize: theme.fonts.bodyLarge.fontSize + 2,
+              }}
+            >
+              {match.innings
+                .filter((innings) => innings.team === team)
+                .map(
+                  (innings) => `${innings.totalRuns}/${innings.totalWickets}`
+                )
+                .join(" & ")}
+            </Text>
+          </View>
+        ))}
+        {!match.completedToss && (
+          <Text
+            style={{
+              marginTop: 7.5,
+            }}
+          >
+            Toss remaining
+          </Text>
+        )}
+      </View>
     );
   }
 );
@@ -240,6 +304,18 @@ const MatchesScreen = observer(
           >
             Add players
           </Button>
+          {isDev && (
+            <Button
+              mode="contained"
+              style={{ marginTop: 10 }}
+              icon={"plus"}
+              onPress={() => {
+                store.dev__addPlayers();
+              }}
+            >
+              Add 4 players
+            </Button>
+          )}
         </View>
       );
     }
@@ -624,13 +700,8 @@ function DrawerItems(props: DrawerContentComponentProps) {
 const MainScreen = observer(() => {
   const Drawer = createDrawerNavigator<DrawerParamList>();
 
-  const playersCount = store.playersCount;
-
   return (
-    <Drawer.Navigator
-      initialRouteName={playersCount >= 4 ? "Matches" : "Players"}
-      drawerContent={(props) => <DrawerItems {...props} />}
-    >
+    <Drawer.Navigator drawerContent={(props) => <DrawerItems {...props} />}>
       <Drawer.Screen
         name="Matches"
         component={MatchesScreen}

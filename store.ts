@@ -1,9 +1,8 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import "react-native-get-random-values";
 import { nanoid } from "nanoid";
 import { Instance, types } from "mobx-state-tree";
+
+const isDev = process.env.NODE_ENV === "development";
 
 const Player = types.model({
   id: types.identifier,
@@ -49,6 +48,9 @@ const Innings = types
         0
       );
     },
+    get totalWickets() {
+      return self.scores.reduce((acc, curr) => acc + (curr.out ? 1 : 0), 0);
+    },
     get oversPlayed() {
       return self.scores.reduce((acc, curr) => acc + curr.score.length / 6, 0);
     },
@@ -63,7 +65,16 @@ const Innings = types
   .actions((self) => ({
     addScore(player: Player, score: number) {
       const playerScore = self.scores.find((score) => score.player === player);
-      if (!playerScore) return;
+      if (!playerScore) {
+        self.scores.push(
+          PlayerScore.create({
+            player: player.id,
+            score: [score],
+            out: false,
+          })
+        );
+        return;
+      }
       playerScore.score.push(score);
     },
     setOut(player: Player) {
@@ -92,6 +103,9 @@ const Match = types
         self.innings.every((innings) => innings.isComplete)
       );
     },
+    get currentInnings() {
+      return self.innings[self.innings.length - 1];
+    },
   }))
   .actions((self) => ({
     addTeam(team: Team) {
@@ -105,6 +119,8 @@ const Match = types
         oversToPlay: self.oversPerInnings,
         declared: false,
       });
+      // innings.addScore(team.players[0], 0);
+      // innings.addScore(team.players[1], 0);
       self.innings.push(innings);
     },
     completeToss() {
@@ -168,6 +184,15 @@ const RootStore = types
       match.addTeam(team2);
 
       self.matches.put(match);
+    },
+  }))
+  .actions((self) => ({
+    dev__addPlayers() {
+      if (!isDev) return;
+
+      const names = ["Virat", "Rohit", "Shikhar", "KL"];
+
+      names.forEach((name) => self.addPlayer(name));
     },
   }));
 
