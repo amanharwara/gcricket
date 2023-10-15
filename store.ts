@@ -77,6 +77,10 @@ const Innings = types
       const allOut = self.scores.every((score) => score.out);
       return oversCompleted || allOut || self.declared;
     },
+    get runRate() {
+      if (self.oversPlayed === 0) return 0;
+      return self.totalRuns / self.oversPlayed;
+    },
   }))
   .actions((self) => ({
     addScore(player: Player) {

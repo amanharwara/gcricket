@@ -280,8 +280,8 @@ const MatchScreen = observer(
                 alignItems: "center",
                 gap: 10,
                 backgroundColor: theme.colors.primaryContainer,
-                paddingHorizontal: 20,
-                paddingVertical: 15,
+                paddingHorizontal: 15,
+                paddingVertical: 12.5,
               }}
             >
               <Text
@@ -357,9 +357,10 @@ const MatchScreen = observer(
                   display: "flex",
                   flexDirection: "row",
                   alignItems: "center",
-                  // backgroundColor: theme.colors.secondaryContainer,
                   borderBottomWidth: 1,
                   borderBottomColor: theme.colors.backdrop,
+                  borderLeftWidth: !score.out ? 2 : 0,
+                  borderLeftColor: theme.colors.secondary,
                 }}
                 key={score.player.id}
               >
@@ -403,6 +404,7 @@ const MatchScreen = observer(
               style={{
                 display: "flex",
                 flexDirection: "row",
+                alignItems: "center",
                 backgroundColor: theme.colors.secondaryContainer,
               }}
             >
@@ -417,6 +419,37 @@ const MatchScreen = observer(
               >
                 Total
               </Text>
+              <Text
+                style={{
+                  padding: 7,
+                  textAlign: "center",
+                  fontWeight: "700",
+                }}
+              >
+                {innings.totalRuns}/{innings.totalWickets}
+              </Text>
+              {innings.oversPlayed > 0 && (
+                <>
+                  <Text
+                    style={{
+                      padding: 7,
+                      textAlign: "center",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {innings.oversPlayed} Ov
+                  </Text>
+                  <Text
+                    style={{
+                      padding: 7,
+                      textAlign: "center",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {innings.runRate.toFixed(2)} RPO
+                  </Text>
+                </>
+              )}
             </View>
           </View>
         ))}
