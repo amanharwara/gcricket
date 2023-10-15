@@ -149,6 +149,16 @@ const MatchModel = types
     get target() {
       const isLastInnings = self.innings.length === self.inningsPerTeam * 2;
       if (!isLastInnings) return null;
+      if (self.inningsPerTeam === 2) {
+        const firstBattingTeam = self.innings[0].team;
+        const firstBattingTeamTotal = self.innings.reduce(
+          (acc, curr) =>
+            acc + (curr.team === firstBattingTeam ? curr.totalRuns : 0),
+          0,
+        );
+        const secondBattingFirstInnings = self.innings[1].totalRuns;
+        return firstBattingTeamTotal - secondBattingFirstInnings + 1;
+      }
       return self.innings[0].totalRuns + 1;
     },
   }))

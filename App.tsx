@@ -475,7 +475,10 @@ const MatchScreen = observer(
               }}
             >
               {match.currentInnings.team === match.winner
-                ? `${match.winner.name} won by ${match.currentInnings.totalWickets} wickets`
+                ? `${match.winner.name} won by ${
+                    match.currentInnings.team.players.length -
+                    match.currentInnings.totalWickets
+                  } wickets`
                 : `${match.winner.name} won by ${
                     match.target! - match.currentInnings.totalRuns
                   } runs`}
