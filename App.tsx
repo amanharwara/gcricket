@@ -14,6 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import {
   Alert,
   Pressable,
+  ScrollView,
   View,
   ViewStyle,
   useColorScheme,
@@ -376,12 +377,13 @@ const MatchScreen = observer(
     }
 
     return (
-      <View>
+      <ScrollView>
         <View
           style={{
             paddingVertical: 15,
             paddingHorizontal: 20,
             backgroundColor: theme.colors.secondaryContainer,
+            marginBottom: 20,
           }}
         >
           <Text
@@ -431,9 +433,11 @@ const MatchScreen = observer(
                         !innings.isComplete
                           ? `(${innings.oversPlayed.toFixed(1)}/${
                               innings.oversToPlay
-                            } ov)`
+                            } ov) `
                           : ""
-                      } ${innings.totalRuns}/${innings.totalWickets}`,
+                      }${match.target ? `(T: ${match.target}) ` : ""}${
+                        innings.totalRuns
+                      }/${innings.totalWickets}`,
                   )
                   .join(" & ")}
               </Text>
@@ -453,7 +457,7 @@ const MatchScreen = observer(
           <View
             key={innings.id}
             style={{
-              marginVertical: 15,
+              marginBottom: 15,
             }}
           >
             <View
@@ -675,7 +679,7 @@ const MatchScreen = observer(
             </View>
           </View>
         ))}
-      </View>
+      </ScrollView>
     );
   },
 );

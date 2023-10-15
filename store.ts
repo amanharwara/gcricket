@@ -1,6 +1,7 @@
 import "react-native-get-random-values";
 import { nanoid } from "nanoid";
 import { Instance, types } from "mobx-state-tree";
+import { autorun } from "mobx";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -141,6 +142,11 @@ const MatchModel = types
     get currentInnings() {
       return self.innings[self.innings.length - 1];
     },
+    get target() {
+      const isLastInnings = self.innings.length === self.inningsPerTeam * 2;
+      if (!isLastInnings) return null;
+      return self.innings[0].totalRuns + 1;
+    },
   }))
   .actions((self) => ({
     addTeam(team: Team) {
@@ -160,6 +166,19 @@ const MatchModel = types
     },
     completeToss() {
       self.completedToss = true;
+    },
+  }))
+  .actions((self) => ({
+    afterAttach() {
+      autorun(() => {
+        if (!self.currentInnings?.isComplete) return;
+        if (self.innings.length === self.inningsPerTeam * 2) return;
+        const team = self.teams.find(
+          (team) => team !== self.currentInnings.team,
+        );
+        if (!team) return;
+        self.startInnings(team);
+      });
     },
   }));
 
