@@ -361,6 +361,120 @@ const PlayerScoreScreen = observer(
   },
 );
 
+const MatchScorecard = observer(
+  ({ match, style }: { match: Match; style?: ViewStyle }) => {
+    const theme = useTheme();
+
+    return (
+      <View
+        style={{
+          paddingVertical: 15,
+          paddingHorizontal: 20,
+          backgroundColor: theme.colors.secondaryContainer,
+          ...style,
+        }}
+      >
+        <Text
+          style={{
+            marginBottom: 5,
+          }}
+        >
+          {match.oversPerInnings === Infinity
+            ? "Unlimited"
+            : match.oversPerInnings}
+          -over match
+          {match.inningsPerTeam === 2 && " (2 innings per team)"}
+        </Text>
+        {match.teams.map((team) => {
+          const canShowOvers =
+            match.currentInnings.oversPlayed > 0 &&
+            match.currentInnings.oversToPlay !== Infinity &&
+            !match.currentInnings.isComplete;
+
+          const isBatting = match.currentInnings.team === team;
+          const isWinner = match.winner === team;
+
+          return (
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 3.5,
+                opacity:
+                  (!match.currentInnings.isComplete && isBatting) || isWinner
+                    ? 1
+                    : 0.5,
+              }}
+              key={team.id}
+            >
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                }}
+              >
+                {team.name}
+                {isWinner ? " 🏆" : ""}
+              </Text>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                }}
+              >
+                {isBatting &&
+                  (canShowOvers || !!match.target) &&
+                  `(${
+                    canShowOvers
+                      ? `${match.currentInnings.oversPlayed.toFixed(1)}/${
+                          match.currentInnings.oversToPlay
+                        } ov`
+                      : ""
+                  }${canShowOvers && !!match.target ? ", " : ""}${
+                    match.target ? `T: ${match.target}` : ""
+                  })`}{" "}
+                {match.innings
+                  .filter((innings) => innings.team === team)
+                  .map(
+                    (innings) => `${innings.totalRuns}/${innings.totalWickets}`,
+                  )
+                  .join(" & ")}
+              </Text>
+            </View>
+          );
+        })}
+        {!match.completedToss && (
+          <Text
+            style={{
+              marginTop: 7.5,
+            }}
+          >
+            Toss remaining
+          </Text>
+        )}
+        {match.winner && (
+          <Text
+            style={{
+              marginTop: 5,
+            }}
+          >
+            {match.currentInnings.team === match.winner
+              ? `${match.winner.name} won by ${
+                  match.currentInnings.team.players.length -
+                  match.currentInnings.totalWickets
+                } wickets`
+              : `${match.winner.name} won by ${
+                  match.target! - match.currentInnings.totalRuns
+                } runs`}
+          </Text>
+        )}
+      </View>
+    );
+  },
+);
+
 const MatchScreen = observer(
   ({ route }: StackScreenProps<RootStackParamList, "Match">) => {
     const theme = useTheme();
@@ -379,112 +493,12 @@ const MatchScreen = observer(
 
     return (
       <ScrollView>
-        <View
+        <MatchScorecard
+          match={match}
           style={{
-            paddingVertical: 15,
-            paddingHorizontal: 20,
-            backgroundColor: theme.colors.secondaryContainer,
             marginBottom: 20,
           }}
-        >
-          <Text
-            style={{
-              marginBottom: 5,
-            }}
-          >
-            {match.oversPerInnings === Infinity
-              ? "Unlimited"
-              : match.oversPerInnings}
-            -over match
-            {match.inningsPerTeam === 2 && " (2 innings per team)"}
-          </Text>
-          {match.teams.map((team) => {
-            const canShowOvers =
-              match.currentInnings.oversPlayed > 0 &&
-              match.currentInnings.oversToPlay !== Infinity &&
-              !match.currentInnings.isComplete;
-
-            const isBatting = match.currentInnings.team === team;
-            const isWinner = match.winner === team;
-
-            return (
-              <View
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 3.5,
-                  opacity:
-                    (!match.currentInnings.isComplete && isBatting) || isWinner
-                      ? 1
-                      : 0.5,
-                }}
-                key={team.id}
-              >
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                  }}
-                >
-                  {team.name}
-                  {isWinner ? " 🏆" : ""}
-                </Text>
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                  }}
-                >
-                  {isBatting &&
-                    (canShowOvers || !!match.target) &&
-                    `(${
-                      canShowOvers
-                        ? `${match.currentInnings.oversPlayed.toFixed(1)}/${
-                            match.currentInnings.oversToPlay
-                          } ov`
-                        : ""
-                    }${canShowOvers && !!match.target ? ", " : ""}${
-                      match.target ? `T: ${match.target}` : ""
-                    })`}{" "}
-                  {match.innings
-                    .filter((innings) => innings.team === team)
-                    .map(
-                      (innings) =>
-                        `${innings.totalRuns}/${innings.totalWickets}`,
-                    )
-                    .join(" & ")}
-                </Text>
-              </View>
-            );
-          })}
-          {!match.completedToss && (
-            <Text
-              style={{
-                marginTop: 7.5,
-              }}
-            >
-              Toss remaining
-            </Text>
-          )}
-          {match.winner && (
-            <Text
-              style={{
-                marginTop: 5,
-              }}
-            >
-              {match.currentInnings.team === match.winner
-                ? `${match.winner.name} won by ${
-                    match.currentInnings.team.players.length -
-                    match.currentInnings.totalWickets
-                  } wickets`
-                : `${match.winner.name} won by ${
-                    match.target! - match.currentInnings.totalRuns
-                  } runs`}
-            </Text>
-          )}
-        </View>
+        />
         {match.innings.map((innings) => (
           <View
             key={innings.id}
@@ -789,59 +803,13 @@ const MatchesScreen = observer(
               }}
             >
               {matches.map((match) => (
-                <Pressable
-                  onPress={() => {
-                    navigationRef.navigate("Match", { id: match.id });
-                  }}
+                <MatchScorecard
+                  match={match}
                   key={match.id}
-                >
-                  <View
-                    style={{
-                      paddingVertical: 15,
-                      paddingHorizontal: 20,
-                      backgroundColor: theme.colors.secondaryContainer,
-                      borderRadius: theme.roundness,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        marginBottom: 5,
-                      }}
-                    >
-                      {match.oversPerInnings === Infinity
-                        ? "Unlimited"
-                        : match.oversPerInnings}
-                      -over match
-                      {match.inningsPerTeam === 2 && " (2 innings per team)"}
-                    </Text>
-                    <Text
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                        marginBottom: 3.5,
-                      }}
-                    >
-                      {match.teams[0].name}
-                    </Text>
-                    <Text
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                      }}
-                    >
-                      {match.teams[1].name}
-                    </Text>
-                    {!match.completedToss && (
-                      <Text
-                        style={{
-                          marginTop: 7.5,
-                        }}
-                      >
-                        Toss remaining
-                      </Text>
-                    )}
-                  </View>
-                </Pressable>
+                  style={{
+                    borderRadius: theme.roundness,
+                  }}
+                />
               ))}
             </View>
             <Button
@@ -1077,7 +1045,7 @@ const PlayersScreen = observer(() => {
   };
 
   return (
-    <View
+    <ScrollView
       style={{
         paddingHorizontal: 10,
         paddingVertical: 10,
@@ -1131,7 +1099,7 @@ const PlayersScreen = observer(() => {
           No players found
         </Text>
       )}
-    </View>
+    </ScrollView>
   );
 });
 
