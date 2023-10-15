@@ -887,8 +887,8 @@ const MatchesScreen = observer(
                   }
                   density="small"
                   buttons={[
-                    { label: "1", value: "1" },
-                    { label: "2", value: "2" },
+                    { label: "1", value: "1", style: { minWidth: 5 } },
+                    { label: "2", value: "2", style: { minWidth: 5 } },
                   ]}
                   style={{
                     flexShrink: 1,
