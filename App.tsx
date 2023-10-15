@@ -34,6 +34,7 @@ import {
   useTheme,
   Drawer,
   SegmentedButtons,
+  TouchableRipple,
 } from "react-native-paper";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
@@ -199,7 +200,7 @@ const ScoreButton = ({
   const theme = useTheme();
 
   return (
-    <Pressable
+    <TouchableRipple
       onPress={onPress}
       style={{
         display: "flex",
@@ -221,7 +222,7 @@ const ScoreButton = ({
       >
         {children}
       </Text>
-    </Pressable>
+    </TouchableRipple>
   );
 };
 
@@ -397,52 +398,66 @@ const MatchScreen = observer(
             -over match
             {match.inningsPerTeam === 2 && " (2 innings per team)"}
           </Text>
-          {match.teams.map((team) => (
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 3.5,
-                opacity: match.currentInnings.team === team ? 1 : 0.5,
-              }}
-              key={team.id}
-            >
-              <Text
+          {match.teams.map((team) => {
+            const canShowOvers =
+              match.currentInnings.oversPlayed > 0 &&
+              match.currentInnings.oversToPlay !== Infinity &&
+              !match.currentInnings.isComplete;
+
+            return (
+              <View
                 style={{
-                  fontWeight: "bold",
-                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 3.5,
+                  opacity:
+                    (!match.currentInnings.isComplete &&
+                      match.currentInnings.team === team) ||
+                    match.winner === team
+                      ? 1
+                      : 0.5,
                 }}
+                key={team.id}
               >
-                {team.name}
-              </Text>
-              <Text
-                style={{
-                  fontWeight: "bold",
-                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
-                }}
-              >
-                {match.innings
-                  .filter((innings) => innings.team === team)
-                  .map(
-                    (innings) =>
-                      `${
-                        innings.oversPlayed > 0 &&
-                        innings.oversToPlay !== Infinity &&
-                        !innings.isComplete
-                          ? `(${innings.oversPlayed.toFixed(1)}/${
-                              innings.oversToPlay
-                            } ov) `
-                          : ""
-                      }${match.target ? `(T: ${match.target}) ` : ""}${
-                        innings.totalRuns
-                      }/${innings.totalWickets}`,
-                  )
-                  .join(" & ")}
-              </Text>
-            </View>
-          ))}
+                <Text
+                  style={{
+                    fontWeight: "bold",
+                    fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                  }}
+                >
+                  {team.name}
+                  {match.winner === team ? " 🏆" : ""}
+                </Text>
+                <Text
+                  style={{
+                    fontWeight: "bold",
+                    fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                  }}
+                >
+                  {match.currentInnings.team === team &&
+                    (canShowOvers || !!match.target) &&
+                    `(${
+                      canShowOvers
+                        ? `${match.currentInnings.oversPlayed.toFixed(1)}/${
+                            match.currentInnings.oversToPlay
+                          } ov`
+                        : ""
+                    }${canShowOvers && !!match.target ? ", " : ""}${
+                      match.target ? `T: ${match.target}` : ""
+                    })`}{" "}
+                  {match.innings
+                    .filter((innings) => innings.team === team)
+                    .map(
+                      (innings) =>
+                        `${innings.totalRuns}/${innings.totalWickets}`,
+                    )
+                    .join(" & ")}
+                </Text>
+              </View>
+            );
+          })}
           {!match.completedToss && (
             <Text
               style={{

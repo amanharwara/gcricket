@@ -1,6 +1,6 @@
 import "react-native-get-random-values";
 import { nanoid } from "nanoid";
-import { Instance, types } from "mobx-state-tree";
+import { Instance, getParent, getParentOfType, types } from "mobx-state-tree";
 import { autorun } from "mobx";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -87,6 +87,9 @@ const InningsModel = types
     get isComplete() {
       const oversCompleted = self.oversPlayed >= self.oversToPlay;
       const allOut = self.scores.every((score) => score.out);
+      const target = getParentOfType(self, MatchModel).target;
+      const chaseCompleted = !!target && self.totalRuns >= target;
+      if (chaseCompleted) return true;
       return oversCompleted || allOut || self.declared;
     },
     get runRate() {
@@ -131,6 +134,7 @@ const MatchModel = types
     oversPerInnings: types.number,
     inningsPerTeam: types.number,
     completedToss: types.boolean,
+    winner: types.maybe(types.reference(TeamModel)),
   })
   .views((self) => ({
     get isComplete() {
@@ -167,12 +171,23 @@ const MatchModel = types
     completeToss() {
       self.completedToss = true;
     },
+    setWinner(team: Team) {
+      self.winner = team;
+    },
   }))
   .actions((self) => ({
     afterAttach() {
       autorun(() => {
         if (!self.currentInnings?.isComplete) return;
-        if (self.innings.length === self.inningsPerTeam * 2) return;
+        const isLastInnings = self.innings.length === self.inningsPerTeam * 2;
+        if (isLastInnings) {
+          self.setWinner(
+            self.currentInnings.totalRuns >= self.target!
+              ? self.currentInnings.team
+              : self.teams.find((team) => team !== self.currentInnings.team)!,
+          );
+          return;
+        }
         const team = self.teams.find(
           (team) => team !== self.currentInnings.team,
         );
