@@ -47,7 +47,17 @@ const PlayerScore = types
       if (self.ballsFaced === 0) return 0;
       return (self.totalRuns / self.ballsFaced) * 100;
     },
+  }))
+  .actions((self) => ({
+    addBall(runs: number) {
+      self.balls.push(runs);
+    },
+    setOut() {
+      self.out = true;
+    },
   }));
+
+export type PlayerScore = Instance<typeof PlayerScore>;
 
 const Innings = types
   .model({
@@ -83,22 +93,10 @@ const Innings = types
     },
   }))
   .actions((self) => ({
-    addScore(player: Player) {
+    addPlayerScore(player: Player) {
       self.scores.push(
         PlayerScore.create({ player: player.id, balls: [], out: false })
       );
-    },
-    addBall(player: Player, runs: number) {
-      const playerScore = self.scores.find((score) => score.player === player);
-      if (!playerScore) {
-        return;
-      }
-      playerScore.balls.push(runs);
-    },
-    setOut(player: Player) {
-      const playerScore = self.scores.find((score) => score.player === player);
-      if (!playerScore) return;
-      playerScore.out = true;
     },
     declare() {
       self.declared = true;
@@ -137,8 +135,8 @@ const Match = types
         oversToPlay: self.oversPerInnings,
         declared: false,
       });
-      innings.addScore(team.players[0]);
-      innings.addScore(team.players[1]);
+      innings.addPlayerScore(team.players[0]);
+      innings.addPlayerScore(team.players[1]);
       self.innings.push(innings);
     },
     completeToss() {

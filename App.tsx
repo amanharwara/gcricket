@@ -32,7 +32,7 @@ import {
   DefaultTheme as NavigationDefaultTheme,
 } from "@react-navigation/native";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
-import { Match, Player, Team, store } from "./store";
+import { Match, Player, PlayerScore, Team, store } from "./store";
 import { observer } from "mobx-react-lite";
 import {
   StackScreenProps,
@@ -44,6 +44,7 @@ const isDev = process.env.NODE_ENV === "development";
 type RootStackParamList = {
   Main: undefined;
   Match: { id: string };
+  PlayerScore: PlayerScore;
 };
 
 type DrawerParamList = {
@@ -178,6 +179,51 @@ const Toss = observer(({ match }: { match: Match }) => {
     </View>
   );
 });
+
+const PlayerScoreScreen = observer(
+  ({ route }: StackScreenProps<RootStackParamList, "PlayerScore">) => {
+    const theme = useTheme();
+    const playerScore = route.params;
+
+    return (
+      <View
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: theme.fonts.headlineSmall.fontSize,
+            fontWeight: theme.fonts.headlineSmall.fontWeight,
+            marginBottom: 5,
+          }}
+        >
+          {playerScore.player.name}
+        </Text>
+        <Text
+          style={{
+            fontSize: theme.fonts.displayMedium.fontSize,
+            fontWeight: theme.fonts.displayMedium.fontWeight,
+          }}
+        >
+          {playerScore.totalRuns}
+        </Text>
+        <Text
+          style={{
+            fontSize: theme.fonts.headlineSmall.fontSize,
+            fontWeight: theme.fonts.headlineSmall.fontWeight,
+          }}
+        >
+          ({playerScore.ballsFaced})
+        </Text>
+      </View>
+    );
+  }
+);
 
 const MatchScreen = observer(
   ({ route }: StackScreenProps<RootStackParamList, "Match">) => {
@@ -352,53 +398,60 @@ const MatchScreen = observer(
               </Text>
             </View>
             {innings.scores.map((score) => (
-              <View
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  borderBottomWidth: 1,
-                  borderBottomColor: theme.colors.backdrop,
-                  borderLeftWidth: !score.out ? 2 : 0,
-                  borderLeftColor: theme.colors.secondary,
-                }}
+              <Pressable
                 key={score.player.id}
+                onPress={() => {
+                  navigationRef.navigate("PlayerScore", score);
+                }}
+                disabled={score.out}
               >
-                <Text
+                <View
                   style={{
-                    flexGrow: 1,
-                    paddingVertical: 10,
-                    paddingHorizontal: 15,
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.colors.backdrop,
+                    borderLeftWidth: !score.out ? 2 : 0,
+                    borderLeftColor: theme.colors.secondary,
                   }}
                 >
-                  {score.player.name}
-                </Text>
-                <Text
-                  style={{
-                    width: "10%",
-                    padding: 7,
-                    textAlign: "center",
-                  }}
-                >
-                  {score.totalRuns}
-                </Text>
-                <Text
-                  style={{
-                    width: "10%",
-                    textAlign: "center",
-                  }}
-                >
-                  {score.ballsFaced}
-                </Text>
-                <Text
-                  style={{
-                    width: "10%",
-                    textAlign: "center",
-                  }}
-                >
-                  {score.strikeRate}
-                </Text>
-              </View>
+                  <Text
+                    style={{
+                      flexGrow: 1,
+                      paddingVertical: 10,
+                      paddingHorizontal: 15,
+                    }}
+                  >
+                    {score.player.name}
+                  </Text>
+                  <Text
+                    style={{
+                      width: "10%",
+                      padding: 7,
+                      textAlign: "center",
+                    }}
+                  >
+                    {score.totalRuns}
+                  </Text>
+                  <Text
+                    style={{
+                      width: "10%",
+                      textAlign: "center",
+                    }}
+                  >
+                    {score.ballsFaced}
+                  </Text>
+                  <Text
+                    style={{
+                      width: "10%",
+                      textAlign: "center",
+                    }}
+                  >
+                    {score.strikeRate}
+                  </Text>
+                </View>
+              </Pressable>
             ))}
             <View
               style={{
@@ -965,6 +1018,13 @@ function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="Match" component={MatchScreen} />
+          <Stack.Screen
+            name="PlayerScore"
+            component={PlayerScoreScreen}
+            options={{
+              headerTitle: "Player score",
+            }}
+          />
         </Stack.Navigator>
         <StatusBar style="auto" />
       </NavigationContainer>
