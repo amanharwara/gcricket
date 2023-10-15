@@ -607,6 +607,21 @@ const MatchScreen = observer(
                 </View>
               </Pressable>
             ))}
+            {innings.playersYetToBat.length > 0 && (
+              <View
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 15,
+                }}
+              >
+                <Text>
+                  Yet to bat:{" "}
+                  {innings.playersYetToBat
+                    .map((player) => player.name)
+                    .join(", ")}
+                </Text>
+              </View>
+            )}
             <View
               style={{
                 display: "flex",
