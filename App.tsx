@@ -196,68 +196,230 @@ const MatchScreen = observer(
     }
 
     return (
-      <View
-        style={{
-          paddingVertical: 15,
-          paddingHorizontal: 20,
-          backgroundColor: theme.colors.secondaryContainer,
-        }}
-      >
-        <Text
+      <View>
+        <View
           style={{
-            marginBottom: 5,
+            paddingVertical: 15,
+            paddingHorizontal: 20,
+            backgroundColor: theme.colors.secondaryContainer,
           }}
         >
-          {match.oversPerInnings === Infinity
-            ? "Unlimited"
-            : match.oversPerInnings}
-          -over match
-          {match.inningsPerTeam === 2 && " (2 innings per team)"}
-        </Text>
-        {match.teams.map((team) => (
-          <View
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 3.5,
-              opacity: match.currentInnings.team === team ? 1 : 0.5,
-            }}
-            key={team.id}
-          >
-            <Text
-              style={{
-                fontWeight: "bold",
-                fontSize: theme.fonts.bodyLarge.fontSize + 2,
-              }}
-            >
-              {team.name}
-            </Text>
-            <Text
-              style={{
-                fontWeight: "bold",
-                fontSize: theme.fonts.bodyLarge.fontSize + 2,
-              }}
-            >
-              {match.innings
-                .filter((innings) => innings.team === team)
-                .map(
-                  (innings) => `${innings.totalRuns}/${innings.totalWickets}`
-                )
-                .join(" & ")}
-            </Text>
-          </View>
-        ))}
-        {!match.completedToss && (
           <Text
             style={{
-              marginTop: 7.5,
+              marginBottom: 5,
             }}
           >
-            Toss remaining
+            {match.oversPerInnings === Infinity
+              ? "Unlimited"
+              : match.oversPerInnings}
+            -over match
+            {match.inningsPerTeam === 2 && " (2 innings per team)"}
           </Text>
-        )}
+          {match.teams.map((team) => (
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 3.5,
+                opacity: match.currentInnings.team === team ? 1 : 0.5,
+              }}
+              key={team.id}
+            >
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                }}
+              >
+                {team.name}
+              </Text>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                }}
+              >
+                {match.innings
+                  .filter((innings) => innings.team === team)
+                  .map(
+                    (innings) =>
+                      `${
+                        innings.oversPlayed > 0 &&
+                        innings.oversToPlay !== Infinity
+                          ? `(${innings.oversPlayed}/${innings.oversToPlay} ov)`
+                          : ""
+                      } ${innings.totalRuns}/${innings.totalWickets}`
+                  )
+                  .join(" & ")}
+              </Text>
+            </View>
+          ))}
+          {!match.completedToss && (
+            <Text
+              style={{
+                marginTop: 7.5,
+              }}
+            >
+              Toss remaining
+            </Text>
+          )}
+        </View>
+        {match.innings.map((innings) => (
+          <View
+            key={innings.id}
+            style={{
+              marginVertical: 15,
+            }}
+          >
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                backgroundColor: theme.colors.primaryContainer,
+                paddingHorizontal: 20,
+                paddingVertical: 15,
+              }}
+            >
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: theme.fonts.bodyLarge.fontSize + 2,
+                }}
+              >
+                {innings.team.name}
+              </Text>
+              {innings.oversToPlay !== Infinity && (
+                <Text
+                  style={{
+                    fontWeight: "700",
+                  }}
+                >
+                  ({innings.oversToPlay} ovs maximum)
+                </Text>
+              )}
+            </View>
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                backgroundColor: theme.colors.secondaryContainer,
+              }}
+            >
+              <Text
+                style={{
+                  flexGrow: 1,
+                  paddingVertical: 7,
+                  paddingHorizontal: 15,
+                  textTransform: "uppercase",
+                  fontWeight: "700",
+                }}
+              >
+                Batting
+              </Text>
+              <Text
+                style={{
+                  width: "10%",
+                  padding: 7,
+                  textAlign: "center",
+                  fontWeight: "700",
+                }}
+              >
+                R
+              </Text>
+              <Text
+                style={{
+                  width: "10%",
+                  padding: 7,
+                  textAlign: "center",
+                  fontWeight: "700",
+                }}
+              >
+                B
+              </Text>
+              <Text
+                style={{
+                  width: "10%",
+                  padding: 7,
+                  textAlign: "center",
+                  fontWeight: "700",
+                }}
+              >
+                SR
+              </Text>
+            </View>
+            {innings.scores.map((score) => (
+              <View
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  // backgroundColor: theme.colors.secondaryContainer,
+                  borderBottomWidth: 1,
+                  borderBottomColor: theme.colors.backdrop,
+                }}
+                key={score.player.id}
+              >
+                <Text
+                  style={{
+                    flexGrow: 1,
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                  }}
+                >
+                  {score.player.name}
+                </Text>
+                <Text
+                  style={{
+                    width: "10%",
+                    padding: 7,
+                    textAlign: "center",
+                  }}
+                >
+                  {score.totalRuns}
+                </Text>
+                <Text
+                  style={{
+                    width: "10%",
+                    textAlign: "center",
+                  }}
+                >
+                  {score.ballsFaced}
+                </Text>
+                <Text
+                  style={{
+                    width: "10%",
+                    textAlign: "center",
+                  }}
+                >
+                  {score.strikeRate}
+                </Text>
+              </View>
+            ))}
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                backgroundColor: theme.colors.secondaryContainer,
+              }}
+            >
+              <Text
+                style={{
+                  flexGrow: 1,
+                  paddingVertical: 10,
+                  paddingHorizontal: 15,
+                  textTransform: "uppercase",
+                  fontWeight: "700",
+                }}
+              >
+                Total
+              </Text>
+            </View>
+          </View>
+        ))}
       </View>
     );
   }
@@ -313,7 +475,7 @@ const MatchesScreen = observer(
                 store.dev__addPlayers();
               }}
             >
-              Add 4 players
+              Add required players
             </Button>
           )}
         </View>

@@ -21,17 +21,33 @@ const Team = types
       return self.players
         .map((player) => player.name.at(0))
         .join("")
-        .toLocaleUpperCase();
+        .toLocaleUpperCase()
+        .slice(0, 3);
     },
   }));
 
 export type Team = Instance<typeof Team>;
 
-const PlayerScore = types.model({
-  player: types.reference(Player),
-  score: types.array(types.number),
-  out: types.boolean,
-});
+const PlayerScore = types
+  .model({
+    player: types.reference(Player),
+    balls: types.array(types.number),
+    out: types.boolean,
+  })
+  .views((self) => ({
+    get totalRuns() {
+      return self.balls.reduce((acc, curr) => acc + curr, 0);
+    },
+    get ballsFaced() {
+      return self.balls.length;
+    },
+  }))
+  .views((self) => ({
+    get strikeRate() {
+      if (self.ballsFaced === 0) return 0;
+      return (self.totalRuns / self.ballsFaced) * 100;
+    },
+  }));
 
 const Innings = types
   .model({
@@ -44,7 +60,7 @@ const Innings = types
   .views((self) => ({
     get totalRuns() {
       return self.scores.reduce(
-        (acc, curr) => acc + curr.score.reduce((acc, curr) => acc + curr, 0),
+        (acc, curr) => acc + curr.balls.reduce((acc, curr) => acc + curr, 0),
         0
       );
     },
@@ -52,7 +68,7 @@ const Innings = types
       return self.scores.reduce((acc, curr) => acc + (curr.out ? 1 : 0), 0);
     },
     get oversPlayed() {
-      return self.scores.reduce((acc, curr) => acc + curr.score.length / 6, 0);
+      return self.scores.reduce((acc, curr) => acc + curr.balls.length / 6, 0);
     },
   }))
   .views((self) => ({
@@ -63,19 +79,17 @@ const Innings = types
     },
   }))
   .actions((self) => ({
-    addScore(player: Player, score: number) {
+    addScore(player: Player) {
+      self.scores.push(
+        PlayerScore.create({ player: player.id, balls: [], out: false })
+      );
+    },
+    addBall(player: Player, runs: number) {
       const playerScore = self.scores.find((score) => score.player === player);
       if (!playerScore) {
-        self.scores.push(
-          PlayerScore.create({
-            player: player.id,
-            score: [score],
-            out: false,
-          })
-        );
         return;
       }
-      playerScore.score.push(score);
+      playerScore.balls.push(runs);
     },
     setOut(player: Player) {
       const playerScore = self.scores.find((score) => score.player === player);
@@ -119,8 +133,8 @@ const Match = types
         oversToPlay: self.oversPerInnings,
         declared: false,
       });
-      // innings.addScore(team.players[0], 0);
-      // innings.addScore(team.players[1], 0);
+      innings.addScore(team.players[0]);
+      innings.addScore(team.players[1]);
       self.innings.push(innings);
     },
     completeToss() {
@@ -190,9 +204,16 @@ const RootStore = types
     dev__addPlayers() {
       if (!isDev) return;
 
-      const names = ["Virat", "Rohit", "Shikhar", "KL"];
-
-      names.forEach((name) => self.addPlayer(name));
+      [
+        "Virat",
+        "Rohit",
+        "Shikhar",
+        "KL",
+        "Mark",
+        "Pat",
+        "David",
+        "Joe",
+      ].forEach((name) => self.addPlayer(name));
     },
   }));
 
