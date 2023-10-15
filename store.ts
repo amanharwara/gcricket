@@ -118,8 +118,9 @@ const InningsModel = types
       if (!score) return;
       score.addBall(0);
       score.out = true;
-      if (self.playersYetToBat.length > 0) {
-        self.addPlayerScore(self.playersYetToBat[0]);
+      const playersYetToBat = self.playersYetToBat;
+      if (playersYetToBat[0]) {
+        self.addPlayerScore(playersYetToBat[0]);
       }
     },
   }));
@@ -150,16 +151,16 @@ const MatchModel = types
       const isLastInnings = self.innings.length === self.inningsPerTeam * 2;
       if (!isLastInnings) return null;
       if (self.inningsPerTeam === 2) {
-        const firstBattingTeam = self.innings[0].team;
+        const firstBattingTeam = self.innings[0]!.team;
         const firstBattingTeamTotal = self.innings.reduce(
           (acc, curr) =>
             acc + (curr.team === firstBattingTeam ? curr.totalRuns : 0),
           0,
         );
-        const secondBattingFirstInnings = self.innings[1].totalRuns;
+        const secondBattingFirstInnings = self.innings[1]!.totalRuns;
         return firstBattingTeamTotal - secondBattingFirstInnings + 1;
       }
-      return self.innings[0].totalRuns + 1;
+      return self.innings[0]!.totalRuns + 1;
     },
   }))
   .actions((self) => ({
@@ -174,8 +175,8 @@ const MatchModel = types
         oversToPlay: self.oversPerInnings,
         declared: false,
       });
-      innings.addPlayerScore(team.players[0]);
-      innings.addPlayerScore(team.players[1]);
+      innings.addPlayerScore(team.players[0]!);
+      innings.addPlayerScore(team.players[1]!);
       self.innings.push(innings);
     },
     completeToss() {
@@ -194,12 +195,15 @@ const MatchModel = types
           self.setWinner(
             self.currentInnings.totalRuns >= self.target!
               ? self.currentInnings.team
-              : self.teams.find((team) => team !== self.currentInnings.team)!,
+              : self.teams.find(
+                  (team) =>
+                    self.currentInnings && team !== self.currentInnings.team,
+                )!,
           );
           return;
         }
         const team = self.teams.find(
-          (team) => team !== self.currentInnings.team,
+          (team) => self.currentInnings && team !== self.currentInnings.team,
         );
         if (!team) return;
         self.startInnings(team);

@@ -64,7 +64,7 @@ const Toss = observer(({ match }: { match: Match }) => {
   const theme = useTheme();
 
   const [teamThatWillCall] = useState<Team>(
-    () => match.teams[Math.floor(Math.random() * 2)],
+    () => match.teams[Math.floor(Math.random() * 2)]!,
   );
   const [teamThatWonToss, setTeamThatWonToss] = useState<Team | null>(null);
 
@@ -172,8 +172,8 @@ const Toss = observer(({ match }: { match: Match }) => {
         onPress={() => {
           match.startInnings(
             teamThatWonToss === match.teams[0]
-              ? match.teams[1]
-              : match.teams[0],
+              ? match.teams[1]!
+              : match.teams[0]!,
           );
           match.completeToss();
         }}
@@ -386,12 +386,14 @@ const MatchScorecard = observer(
           {match.inningsPerTeam === 2 && " (2 innings per team)"}
         </Text>
         {match.teams.map((team) => {
-          const canShowOvers =
-            match.currentInnings.oversPlayed > 0 &&
-            match.currentInnings.oversToPlay !== Infinity &&
-            !match.currentInnings.isComplete;
+          const canShowOvers = match.currentInnings
+            ? match.currentInnings.oversPlayed > 0 &&
+              match.currentInnings.oversToPlay !== Infinity &&
+              !match.currentInnings.isComplete
+            : false;
 
-          const isBatting = match.currentInnings.team === team;
+          const isBatting =
+            !!match.currentInnings && match.currentInnings.team === team;
           const isWinner = match.winner === team;
 
           return (
@@ -403,7 +405,9 @@ const MatchScorecard = observer(
                 justifyContent: "space-between",
                 marginBottom: 3.5,
                 opacity:
-                  (!match.currentInnings.isComplete && isBatting) || isWinner
+                  (!match.currentInnings?.isComplete && isBatting) ||
+                  isWinner ||
+                  !match.currentInnings
                     ? 1
                     : 0.5,
               }}
@@ -460,13 +464,13 @@ const MatchScorecard = observer(
               marginTop: 5,
             }}
           >
-            {match.currentInnings.team === match.winner
+            {match.currentInnings?.team === match.winner
               ? `${match.winner.name} won by ${
                   match.currentInnings.team.players.length -
                   match.currentInnings.totalWickets
                 } wickets`
               : `${match.winner.name} won by ${
-                  match.target! - match.currentInnings.totalRuns
+                  match.target! - (match.currentInnings?.totalRuns || 0)
                 } runs`}
           </Text>
         )}
@@ -803,13 +807,19 @@ const MatchesScreen = observer(
               }}
             >
               {matches.map((match) => (
-                <MatchScorecard
-                  match={match}
-                  key={match.id}
-                  style={{
-                    borderRadius: theme.roundness,
+                <TouchableRipple
+                  onPress={() => {
+                    navigationRef.navigate("Match", { id: match.id });
                   }}
-                />
+                  key={match.id}
+                >
+                  <MatchScorecard
+                    match={match}
+                    style={{
+                      borderRadius: theme.roundness,
+                    }}
+                  />
+                </TouchableRipple>
               ))}
             </View>
             <Button
