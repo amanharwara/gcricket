@@ -36,7 +36,7 @@ import {
   SegmentedButtons,
   TouchableRipple,
 } from "react-native-paper";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { Fragment, ReactNode, useEffect, useMemo, useState } from "react";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { Innings, Match, Player, PlayerScore, Team, store } from "./store";
 import { observer } from "mobx-react-lite";
@@ -404,6 +404,9 @@ const MatchScreen = observer(
               match.currentInnings.oversToPlay !== Infinity &&
               !match.currentInnings.isComplete;
 
+            const isBatting = match.currentInnings.team === team;
+            const isWinner = match.winner === team;
+
             return (
               <View
                 style={{
@@ -413,9 +416,7 @@ const MatchScreen = observer(
                   justifyContent: "space-between",
                   marginBottom: 3.5,
                   opacity:
-                    (!match.currentInnings.isComplete &&
-                      match.currentInnings.team === team) ||
-                    match.winner === team
+                    (!match.currentInnings.isComplete && isBatting) || isWinner
                       ? 1
                       : 0.5,
                 }}
@@ -428,7 +429,7 @@ const MatchScreen = observer(
                   }}
                 >
                   {team.name}
-                  {match.winner === team ? " 🏆" : ""}
+                  {isWinner ? " 🏆" : ""}
                 </Text>
                 <Text
                   style={{
@@ -436,7 +437,7 @@ const MatchScreen = observer(
                     fontSize: theme.fonts.bodyLarge.fontSize + 2,
                   }}
                 >
-                  {match.currentInnings.team === team &&
+                  {isBatting &&
                     (canShowOvers || !!match.target) &&
                     `(${
                       canShowOvers
@@ -465,6 +466,19 @@ const MatchScreen = observer(
               }}
             >
               Toss remaining
+            </Text>
+          )}
+          {match.winner && (
+            <Text
+              style={{
+                marginTop: 5,
+              }}
+            >
+              {match.currentInnings.team === match.winner
+                ? `${match.winner.name} won by ${match.currentInnings.totalWickets} wickets`
+                : `${match.winner.name} won by ${
+                    match.target! - match.currentInnings.totalRuns
+                  } runs`}
             </Text>
           )}
         </View>

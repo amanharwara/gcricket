@@ -1,6 +1,6 @@
 import "react-native-get-random-values";
 import { nanoid } from "nanoid";
-import { Instance, getParent, getParentOfType, types } from "mobx-state-tree";
+import { Instance, getParentOfType, types } from "mobx-state-tree";
 import { autorun } from "mobx";
 
 const isDev = process.env.NODE_ENV === "development";
