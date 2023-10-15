@@ -15,6 +15,7 @@ import {
   Alert,
   Pressable,
   ScrollView,
+  TextStyle,
   View,
   ViewStyle,
   useColorScheme,
@@ -192,10 +193,12 @@ const ScoreButton = ({
   children,
   onPress,
   style,
+  textStyle,
 }: {
   children: ReactNode;
   onPress: () => void;
   style?: ViewStyle;
+  textStyle?: TextStyle;
 }) => {
   const theme = useTheme();
 
@@ -218,6 +221,7 @@ const ScoreButton = ({
           fontSize: theme.fonts.displaySmall.fontSize,
           fontWeight: theme.fonts.displaySmall.fontWeight,
           color: MD3Colors.primary100,
+          ...textStyle,
         }}
       >
         {children}
@@ -269,8 +273,8 @@ const PlayerScoreScreen = observer(
           </Text>
           <Text
             style={{
-              fontSize: theme.fonts.displayMedium.fontSize,
-              fontWeight: theme.fonts.displayMedium.fontWeight,
+              fontSize: theme.fonts.displayLarge.fontSize + 25,
+              fontWeight: theme.fonts.displayLarge.fontWeight,
             }}
           >
             {playerScore.totalRuns}
@@ -318,14 +322,14 @@ const PlayerScoreScreen = observer(
               backgroundColor: MD3Colors.error40,
             }}
           >
-            Out
+            W
           </ScoreButton>
           <ScoreButton
             onPress={() => {
               playerScore.addBall(0);
             }}
           >
-            Dot
+            ●
           </ScoreButton>
           <ScoreButton
             onPress={() => {
@@ -500,6 +504,7 @@ const MatchScreen = observer(
         <MatchScorecard
           match={match}
           style={{
+            marginTop: 10,
             marginBottom: 20,
           }}
         />
@@ -1150,8 +1155,6 @@ const MainScreen = observer(() => {
 const Stack = createStackNavigator<RootStackParamList>();
 
 function App() {
-  // const hasStoreHydrated = useStore((state) => state._hasHydrated);
-
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
 
@@ -1186,10 +1189,6 @@ function App() {
       ? { ...MD3DarkTheme, colors: mdTheme.dark }
       : { ...MD3LightTheme, colors: mdTheme.light };
   }, [isDarkMode, mdTheme]);
-
-  // if (!hasStoreHydrated) {
-  //   return <Text>Loading...</Text>;
-  // }
 
   return (
     <PaperProvider theme={theme}>
