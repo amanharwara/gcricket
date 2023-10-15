@@ -4,17 +4,17 @@ import { Instance, types } from "mobx-state-tree";
 
 const isDev = process.env.NODE_ENV === "development";
 
-const Player = types.model({
+const PlayerModel = types.model({
   id: types.identifier,
   name: types.string,
 });
 
-export type Player = Instance<typeof Player>;
+export type Player = Instance<typeof PlayerModel>;
 
-const Team = types
+const TeamModel = types
   .model({
     id: types.identifier,
-    players: types.array(types.reference(Player)),
+    players: types.array(types.reference(PlayerModel)),
   })
   .views((self) => ({
     get name() {
@@ -26,11 +26,11 @@ const Team = types
     },
   }));
 
-export type Team = Instance<typeof Team>;
+export type Team = Instance<typeof TeamModel>;
 
-const PlayerScore = types
+const PlayerScoreModel = types
   .model({
-    player: types.reference(Player),
+    player: types.reference(PlayerModel),
     balls: types.array(types.number),
     out: types.boolean,
   })
@@ -54,13 +54,13 @@ const PlayerScore = types
     },
   }));
 
-export type PlayerScore = Instance<typeof PlayerScore>;
+export type PlayerScore = Instance<typeof PlayerScoreModel>;
 
-const Innings = types
+const InningsModel = types
   .model({
     id: types.identifier,
-    scores: types.array(PlayerScore),
-    team: types.reference(Team),
+    scores: types.array(PlayerScoreModel),
+    team: types.reference(TeamModel),
     oversToPlay: types.number,
     declared: types.boolean,
   })
@@ -68,7 +68,7 @@ const Innings = types
     get totalRuns() {
       return self.scores.reduce(
         (acc, curr) => acc + curr.balls.reduce((acc, curr) => acc + curr, 0),
-        0
+        0,
       );
     },
     get totalWickets() {
@@ -77,7 +77,7 @@ const Innings = types
     get oversPlayed() {
       const totalNumberOfBalls = self.scores.reduce(
         (acc, curr) => acc + curr.balls.length,
-        0
+        0,
       );
       return Math.floor(totalNumberOfBalls / 6) + (totalNumberOfBalls % 6) / 10;
     },
@@ -94,14 +94,14 @@ const Innings = types
     },
     get playersYetToBat() {
       return self.team.players.filter(
-        (player) => !self.scores.find((score) => score.player === player)
+        (player) => !self.scores.find((score) => score.player === player),
       );
     },
   }))
   .actions((self) => ({
     addPlayerScore(player: Player) {
       self.scores.push(
-        PlayerScore.create({ player: player.id, balls: [], out: false })
+        PlayerScoreModel.create({ player: player.id, balls: [], out: false }),
       );
     },
     declare() {
@@ -120,13 +120,13 @@ const Innings = types
     },
   }));
 
-export type Innings = Instance<typeof Innings>;
+export type Innings = Instance<typeof InningsModel>;
 
-const Match = types
+const MatchModel = types
   .model({
     id: types.identifier,
-    teams: types.array(Team),
-    innings: types.array(Innings),
+    teams: types.array(TeamModel),
+    innings: types.array(InningsModel),
     oversPerInnings: types.number,
     inningsPerTeam: types.number,
     completedToss: types.boolean,
@@ -147,7 +147,7 @@ const Match = types
       self.teams.push(team);
     },
     startInnings(team: Team) {
-      const innings = Innings.create({
+      const innings = InningsModel.create({
         id: nanoid(),
         team: team.id,
         scores: [],
@@ -163,12 +163,12 @@ const Match = types
     },
   }));
 
-export type Match = Instance<typeof Match>;
+export type Match = Instance<typeof MatchModel>;
 
 const RootStore = types
   .model({
-    players: types.map(Player),
-    matches: types.map(Match),
+    players: types.map(PlayerModel),
+    matches: types.map(MatchModel),
   })
   .views((self) => ({
     get playersCount() {
@@ -190,24 +190,24 @@ const RootStore = types
 
     addMatch(inningsPerTeam: number, oversPerInnings: number) {
       const players = Array.from(self.players.values()).sort(
-        () => Math.random() - 0.5
+        () => Math.random() - 0.5,
       );
 
-      const team1 = Team.create({
+      const team1 = TeamModel.create({
         id: nanoid(),
         players: players
           .slice(0, players.length / 2)
           .map((player) => player.id),
       });
 
-      const team2 = Team.create({
+      const team2 = TeamModel.create({
         id: nanoid(),
         players: players
           .slice(players.length / 2, players.length)
           .map((player) => player.id),
       });
 
-      const match = Match.create({
+      const match = MatchModel.create({
         id: nanoid(),
         teams: [],
         innings: [],

@@ -7,13 +7,13 @@ import {
 import {
   NavigationContainer,
   createNavigationContainerRef,
+  DarkTheme as NavigationDarkTheme,
+  DefaultTheme as NavigationDefaultTheme,
 } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import {
   Alert,
   Pressable,
-  PressableProps,
-  StyleProp,
   View,
   ViewStyle,
   useColorScheme,
@@ -34,11 +34,7 @@ import {
   Drawer,
   SegmentedButtons,
 } from "react-native-paper";
-import { ReactNode, useMemo, useState } from "react";
-import {
-  DarkTheme as NavigationDarkTheme,
-  DefaultTheme as NavigationDefaultTheme,
-} from "@react-navigation/native";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { Innings, Match, Player, PlayerScore, Team, store } from "./store";
 import { observer } from "mobx-react-lite";
@@ -66,7 +62,7 @@ const Toss = observer(({ match }: { match: Match }) => {
   const theme = useTheme();
 
   const [teamThatWillCall] = useState<Team>(
-    () => match.teams[Math.floor(Math.random() * 2)]
+    () => match.teams[Math.floor(Math.random() * 2)],
   );
   const [teamThatWonToss, setTeamThatWonToss] = useState<Team | null>(null);
 
@@ -173,7 +169,9 @@ const Toss = observer(({ match }: { match: Match }) => {
       <Button
         onPress={() => {
           match.startInnings(
-            teamThatWonToss === match.teams[0] ? match.teams[1] : match.teams[0]
+            teamThatWonToss === match.teams[0]
+              ? match.teams[1]
+              : match.teams[0],
           );
           match.completeToss();
         }}
@@ -227,9 +225,18 @@ const ScoreButton = ({
 };
 
 const PlayerScoreScreen = observer(
-  ({ route }: StackScreenProps<RootStackParamList, "PlayerScore">) => {
+  ({
+    navigation,
+    route,
+  }: StackScreenProps<RootStackParamList, "PlayerScore">) => {
     const theme = useTheme();
     const { playerScore, innings } = route.params;
+
+    useEffect(() => {
+      if (playerScore.out || innings.isComplete) {
+        navigation.goBack();
+      }
+    }, [playerScore.out, innings.isComplete]);
 
     return (
       <View
@@ -281,7 +288,9 @@ const PlayerScoreScreen = observer(
             flexDirection: "row",
             flexWrap: "wrap",
             gap: 20,
-            pointerEvents: playerScore.out ? "none" : "auto",
+            pointerEvents:
+              playerScore.out || innings.isComplete ? "none" : "auto",
+            opacity: playerScore.out || innings.isComplete ? 0.5 : 1,
           }}
         >
           <ScoreButton
@@ -300,7 +309,7 @@ const PlayerScoreScreen = observer(
                       innings.markPlayerOut(playerScore.player);
                     },
                   },
-                ]
+                ],
               );
             }}
             style={{
@@ -347,7 +356,7 @@ const PlayerScoreScreen = observer(
         </View>
       </View>
     );
-  }
+  },
 );
 
 const MatchScreen = observer(
@@ -424,7 +433,7 @@ const MatchScreen = observer(
                               innings.oversToPlay
                             } ov)`
                           : ""
-                      } ${innings.totalRuns}/${innings.totalWickets}`
+                      } ${innings.totalRuns}/${innings.totalWickets}`,
                   )
                   .join(" & ")}
               </Text>
@@ -653,7 +662,7 @@ const MatchScreen = observer(
         ))}
       </View>
     );
-  }
+  },
 );
 
 const MatchesScreen = observer(
@@ -692,7 +701,7 @@ const MatchesScreen = observer(
           <Button
             mode="contained"
             style={{ marginTop: 20 }}
-            icon={"plus"}
+            icon="plus"
             onPress={() => navigation.navigate("Players")}
           >
             Add players
@@ -701,7 +710,7 @@ const MatchesScreen = observer(
             <Button
               mode="contained"
               style={{ marginTop: 10 }}
-              icon={"plus"}
+              icon="plus"
               onPress={() => {
                 store.dev__addPlayers();
               }}
@@ -787,7 +796,7 @@ const MatchesScreen = observer(
             <Button
               mode="contained"
               style={{ marginTop: 10, marginHorizontal: 20 }}
-              icon={"plus"}
+              icon="plus"
               onPress={() => setIsCreating(true)}
             >
               Start match
@@ -810,7 +819,7 @@ const MatchesScreen = observer(
             <Button
               mode="contained"
               style={{ marginTop: 10, marginHorizontal: 20 }}
-              icon={"plus"}
+              icon="plus"
               onPress={() => setIsCreating(true)}
             >
               Start match
@@ -840,7 +849,7 @@ const MatchesScreen = observer(
                 <SegmentedButtons
                   value={inningsPerTeam.toString()}
                   onValueChange={(value) =>
-                    setInningsPerTeam(parseInt(value) as 1 | 2)
+                    setInningsPerTeam(parseInt(value, 10) as 1 | 2)
                   }
                   density="small"
                   buttons={[
@@ -865,7 +874,7 @@ const MatchesScreen = observer(
                   onValueChange={(value) =>
                     value === "Infinity"
                       ? setOversPerInnings(Infinity)
-                      : setOversPerInnings(parseInt(value))
+                      : setOversPerInnings(parseInt(value, 10))
                   }
                   density="small"
                   buttons={[
@@ -896,7 +905,7 @@ const MatchesScreen = observer(
         </Portal>
       </View>
     );
-  }
+  },
 );
 
 const PlayerListItem = observer(({ player }: { player: Player }) => {
