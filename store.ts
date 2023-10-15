@@ -52,9 +52,6 @@ const PlayerScore = types
     addBall(runs: number) {
       self.balls.push(runs);
     },
-    setOut() {
-      self.out = true;
-    },
   }));
 
 export type PlayerScore = Instance<typeof PlayerScore>;
@@ -78,7 +75,11 @@ const Innings = types
       return self.scores.reduce((acc, curr) => acc + (curr.out ? 1 : 0), 0);
     },
     get oversPlayed() {
-      return self.scores.reduce((acc, curr) => acc + curr.balls.length / 6, 0);
+      const totalNumberOfBalls = self.scores.reduce(
+        (acc, curr) => acc + curr.balls.length,
+        0
+      );
+      return Math.floor(totalNumberOfBalls / 6) + (totalNumberOfBalls % 6) / 10;
     },
   }))
   .views((self) => ({
@@ -91,6 +92,11 @@ const Innings = types
       if (self.oversPlayed === 0) return 0;
       return self.totalRuns / self.oversPlayed;
     },
+    get playersYetToBat() {
+      return self.team.players.filter(
+        (player) => !self.scores.find((score) => score.player === player)
+      );
+    },
   }))
   .actions((self) => ({
     addPlayerScore(player: Player) {
@@ -101,7 +107,20 @@ const Innings = types
     declare() {
       self.declared = true;
     },
+  }))
+  .actions((self) => ({
+    markPlayerOut(player: Player) {
+      const score = self.scores.find((score) => score.player === player);
+      if (!score) return;
+      score.addBall(0);
+      score.out = true;
+      if (self.playersYetToBat.length > 0) {
+        self.addPlayerScore(self.playersYetToBat[0]);
+      }
+    },
   }));
+
+export type Innings = Instance<typeof Innings>;
 
 const Match = types
   .model({

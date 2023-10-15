@@ -9,7 +9,15 @@ import {
   createNavigationContainerRef,
 } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
-import { Pressable, View, useColorScheme } from "react-native";
+import {
+  Alert,
+  Pressable,
+  PressableProps,
+  StyleProp,
+  View,
+  ViewStyle,
+  useColorScheme,
+} from "react-native";
 import {
   Button,
   Dialog,
@@ -26,13 +34,13 @@ import {
   Drawer,
   SegmentedButtons,
 } from "react-native-paper";
-import { useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import {
   DarkTheme as NavigationDarkTheme,
   DefaultTheme as NavigationDefaultTheme,
 } from "@react-navigation/native";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
-import { Match, Player, PlayerScore, Team, store } from "./store";
+import { Innings, Match, Player, PlayerScore, Team, store } from "./store";
 import { observer } from "mobx-react-lite";
 import {
   StackScreenProps,
@@ -44,7 +52,7 @@ const isDev = process.env.NODE_ENV === "development";
 type RootStackParamList = {
   Main: undefined;
   Match: { id: string };
-  PlayerScore: PlayerScore;
+  PlayerScore: { playerScore: PlayerScore; innings: Innings };
 };
 
 type DrawerParamList = {
@@ -180,46 +188,163 @@ const Toss = observer(({ match }: { match: Match }) => {
   );
 });
 
+const ScoreButton = ({
+  children,
+  onPress,
+  style,
+}: {
+  children: ReactNode;
+  onPress: () => void;
+  style?: ViewStyle;
+}) => {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "46%",
+        padding: 20,
+        backgroundColor: MD3Colors.primary40,
+        borderRadius: theme.roundness,
+        ...style,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: theme.fonts.displaySmall.fontSize,
+          fontWeight: theme.fonts.displaySmall.fontWeight,
+          color: MD3Colors.primary100,
+        }}
+      >
+        {children}
+      </Text>
+    </Pressable>
+  );
+};
+
 const PlayerScoreScreen = observer(
   ({ route }: StackScreenProps<RootStackParamList, "PlayerScore">) => {
     const theme = useTheme();
-    const playerScore = route.params;
+    const { playerScore, innings } = route.params;
 
     return (
       <View
         style={{
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "space-between",
+          flexGrow: 1,
           padding: 20,
         }}
       >
-        <Text
+        <View
           style={{
-            fontSize: theme.fonts.headlineSmall.fontSize,
-            fontWeight: theme.fonts.headlineSmall.fontWeight,
-            marginBottom: 5,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {playerScore.player.name}
-        </Text>
-        <Text
+          <Text
+            style={{
+              fontSize: theme.fonts.headlineSmall.fontSize,
+              fontWeight: theme.fonts.headlineSmall.fontWeight,
+              marginBottom: 5,
+            }}
+          >
+            {playerScore.player.name}
+          </Text>
+          <Text
+            style={{
+              fontSize: theme.fonts.displayMedium.fontSize,
+              fontWeight: theme.fonts.displayMedium.fontWeight,
+            }}
+          >
+            {playerScore.totalRuns}
+          </Text>
+          <Text
+            style={{
+              fontSize: theme.fonts.headlineSmall.fontSize,
+              fontWeight: theme.fonts.headlineSmall.fontWeight,
+            }}
+          >
+            ({playerScore.ballsFaced})
+          </Text>
+        </View>
+        <View
           style={{
-            fontSize: theme.fonts.displayMedium.fontSize,
-            fontWeight: theme.fonts.displayMedium.fontWeight,
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 20,
+            pointerEvents: playerScore.out ? "none" : "auto",
           }}
         >
-          {playerScore.totalRuns}
-        </Text>
-        <Text
-          style={{
-            fontSize: theme.fonts.headlineSmall.fontSize,
-            fontWeight: theme.fonts.headlineSmall.fontWeight,
-          }}
-        >
-          ({playerScore.ballsFaced})
-        </Text>
+          <ScoreButton
+            onPress={() => {
+              Alert.alert(
+                "Confirm",
+                "Are you sure you want to mark this player as out?",
+                [
+                  {
+                    text: "Cancel",
+                    style: "cancel",
+                  },
+                  {
+                    text: "OK",
+                    onPress: () => {
+                      innings.markPlayerOut(playerScore.player);
+                    },
+                  },
+                ]
+              );
+            }}
+            style={{
+              backgroundColor: MD3Colors.error40,
+            }}
+          >
+            Out
+          </ScoreButton>
+          <ScoreButton
+            onPress={() => {
+              playerScore.addBall(0);
+            }}
+          >
+            Dot
+          </ScoreButton>
+          <ScoreButton
+            onPress={() => {
+              playerScore.addBall(1);
+            }}
+          >
+            1
+          </ScoreButton>
+          <ScoreButton
+            onPress={() => {
+              playerScore.addBall(2);
+            }}
+          >
+            2
+          </ScoreButton>
+          <ScoreButton
+            onPress={() => {
+              playerScore.addBall(4);
+            }}
+          >
+            4
+          </ScoreButton>
+          <ScoreButton
+            onPress={() => {
+              playerScore.addBall(6);
+            }}
+          >
+            6
+          </ScoreButton>
+        </View>
       </View>
     );
   }
@@ -293,8 +418,11 @@ const MatchScreen = observer(
                     (innings) =>
                       `${
                         innings.oversPlayed > 0 &&
-                        innings.oversToPlay !== Infinity
-                          ? `(${innings.oversPlayed}/${innings.oversToPlay} ov)`
+                        innings.oversToPlay !== Infinity &&
+                        !innings.isComplete
+                          ? `(${innings.oversPlayed.toFixed(1)}/${
+                              innings.oversToPlay
+                            } ov)`
                           : ""
                       } ${innings.totalRuns}/${innings.totalWickets}`
                   )
@@ -401,9 +529,12 @@ const MatchScreen = observer(
               <Pressable
                 key={score.player.id}
                 onPress={() => {
-                  navigationRef.navigate("PlayerScore", score);
+                  navigationRef.navigate("PlayerScore", {
+                    playerScore: score,
+                    innings,
+                  });
                 }}
-                disabled={score.out}
+                disabled={score.out || innings.isComplete}
               >
                 <View
                   style={{
@@ -416,15 +547,27 @@ const MatchScreen = observer(
                     borderLeftColor: theme.colors.secondary,
                   }}
                 >
-                  <Text
+                  <View
                     style={{
+                      display: "flex",
+                      flexDirection: "column",
                       flexGrow: 1,
                       paddingVertical: 10,
                       paddingHorizontal: 15,
                     }}
                   >
-                    {score.player.name}
-                  </Text>
+                    <Text
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: theme.fonts.bodyLarge.fontSize,
+                      }}
+                    >
+                      {score.player.name}
+                    </Text>
+                    {!score.out && !innings.isComplete && (
+                      <Text>Press to update score</Text>
+                    )}
+                  </View>
                   <Text
                     style={{
                       width: "10%",
@@ -437,6 +580,7 @@ const MatchScreen = observer(
                   <Text
                     style={{
                       width: "10%",
+                      padding: 7,
                       textAlign: "center",
                     }}
                   >
@@ -445,10 +589,11 @@ const MatchScreen = observer(
                   <Text
                     style={{
                       width: "10%",
+                      padding: 7,
                       textAlign: "center",
                     }}
                   >
-                    {score.strikeRate}
+                    {score.strikeRate.toFixed(0)}
                   </Text>
                 </View>
               </Pressable>
@@ -490,7 +635,7 @@ const MatchScreen = observer(
                       fontWeight: "600",
                     }}
                   >
-                    {innings.oversPlayed} Ov
+                    {innings.oversPlayed.toFixed(1)} Ov
                   </Text>
                   <Text
                     style={{
