@@ -1,7 +1,8 @@
 import "react-native-get-random-values";
 import { nanoid } from "nanoid";
-import { Instance, getParentOfType, types } from "mobx-state-tree";
+import { Instance, getParentOfType, onSnapshot, types } from "mobx-state-tree";
 import { autorun } from "mobx";
+import { MMKV } from "react-native-mmkv";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -286,6 +287,22 @@ const RootStore = types
     },
   }));
 
-export const store = RootStore.create({
-  players: {},
+const storage = new MMKV();
+
+const stored = storage.getString("store");
+const parsed = stored ? JSON.parse(stored) : null;
+
+const initialState = parsed
+  ? parsed
+  : {
+      players: {},
+      matches: {},
+    };
+
+export const store = RootStore.create(initialState);
+
+console.log(store.players);
+
+onSnapshot(store, (snapshot) => {
+  storage.set("store", JSON.stringify(snapshot));
 });
