@@ -211,7 +211,7 @@ const ScoreButton = ({
         justifyContent: "center",
         width: "46%",
         padding: 20,
-        backgroundColor: MD3Colors.primary40,
+        backgroundColor: theme.colors.primary,
         borderRadius: theme.roundness,
         ...style,
       }}
@@ -220,7 +220,7 @@ const ScoreButton = ({
         style={{
           fontSize: theme.fonts.displaySmall.fontSize,
           fontWeight: theme.fonts.displaySmall.fontWeight,
-          color: MD3Colors.primary100,
+          color: theme.colors.onPrimary,
           ...textStyle,
         }}
       >
