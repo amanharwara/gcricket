@@ -269,6 +269,9 @@ const RootStore = types
 
       self.matches.put(match);
     },
+    deleteMatch(id: string) {
+      self.matches.delete(id);
+    },
   }))
   .actions((self) => ({
     dev__addPlayers() {
@@ -307,8 +310,6 @@ const initialState =
 
 // @ts-ignore
 export const store = RootStore.create(initialState);
-
-console.log(store.players);
 
 onSnapshot(store, (snapshot) => {
   storage.set(

@@ -36,12 +36,14 @@ import {
   Drawer,
   SegmentedButtons,
   TouchableRipple,
+  Appbar,
 } from "react-native-paper";
-import { Fragment, ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { Innings, Match, Player, PlayerScore, Team, store } from "./store";
 import { observer } from "mobx-react-lite";
 import {
+  StackHeaderProps,
   StackScreenProps,
   createStackNavigator,
 } from "@react-navigation/stack";
@@ -483,6 +485,52 @@ const MatchScorecard = observer(
   },
 );
 
+const MatchHeader = observer(({ navigation, route }: StackHeaderProps) => {
+  const theme = useTheme();
+
+  const match =
+    route.params && "id" in route.params && typeof route.params.id === "string"
+      ? store.matches.get(route.params.id)
+      : null;
+
+  return (
+    <Appbar.Header
+      style={{
+        backgroundColor: theme.colors.elevation.level2,
+      }}
+    >
+      <Appbar.BackAction onPress={() => navigation.goBack()} />
+      <Appbar.Content title="Match" />
+      <Appbar.Action
+        icon="delete"
+        disabled={!match}
+        onPress={() => {
+          if (!match) return;
+
+          Alert.alert(
+            "Confirm",
+            "Are you sure you want to delete this match?",
+            [
+              {
+                text: "Cancel",
+                style: "cancel",
+              },
+              {
+                text: "Delete",
+                onPress: () => {
+                  store.deleteMatch(match.id);
+                  navigation.goBack();
+                },
+                style: "destructive",
+              },
+            ],
+          );
+        }}
+      />
+    </Appbar.Header>
+  );
+});
+
 const MatchScreen = observer(
   ({ route }: StackScreenProps<RootStackParamList, "Match">) => {
     const theme = useTheme();
@@ -505,7 +553,7 @@ const MatchScreen = observer(
           match={match}
           style={{
             marginTop: 10,
-            marginBottom: 20,
+            marginBottom: 15,
           }}
         />
         {match.innings.map((innings) => (
@@ -1199,7 +1247,13 @@ function App() {
             component={MainScreen}
             options={{ headerShown: false }}
           />
-          <Stack.Screen name="Match" component={MatchScreen} />
+          <Stack.Screen
+            name="Match"
+            component={MatchScreen}
+            options={{
+              header: (props) => <MatchHeader {...props} />,
+            }}
+          />
           <Stack.Screen
             name="PlayerScore"
             component={PlayerScoreScreen}
