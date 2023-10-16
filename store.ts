@@ -290,19 +290,32 @@ const RootStore = types
 const storage = new MMKV();
 
 const stored = storage.getString("store");
-const parsed = stored ? JSON.parse(stored) : null;
+const parsed = stored
+  ? JSON.parse(stored, (key, value) => {
+      if (value === "Infinity") return Infinity;
+      return value;
+    })
+  : null;
 
-const initialState = parsed
-  ? parsed
-  : {
-      players: {},
-      matches: {},
-    };
+const initialState =
+  parsed && RootStore.is(parsed)
+    ? parsed
+    : {
+        players: {},
+        matches: {},
+      };
 
+// @ts-ignore
 export const store = RootStore.create(initialState);
 
 console.log(store.players);
 
 onSnapshot(store, (snapshot) => {
-  storage.set("store", JSON.stringify(snapshot));
+  storage.set(
+    "store",
+    JSON.stringify(snapshot, (key, value) => {
+      if (value === Infinity) return "Infinity";
+      return value;
+    }),
+  );
 });
