@@ -977,10 +977,10 @@ const PlayerListItem = observer(({ player }: { player: Player }) => {
       <IconButton
         size={20}
         icon="pencil"
-        iconColor={MD3Colors.primary40}
+        iconColor={theme.colors.onPrimary}
         mode="contained"
         style={{
-          backgroundColor: MD3Colors.primary80,
+          backgroundColor: theme.colors.primary,
           marginLeft: 10,
         }}
         onPress={() => {
@@ -1085,11 +1085,11 @@ const PlayersScreen = observer(() => {
         />
         <IconButton
           icon="plus"
-          iconColor={MD3Colors.primary40}
+          iconColor={theme.colors.onPrimary}
           mode="contained"
           accessibilityLabel="Add player"
           onPress={addPlayerHandler}
-          style={{ backgroundColor: MD3Colors.primary90 }}
+          style={{ backgroundColor: theme.colors.primary }}
         />
       </View>
       {players.length > 0 ? (
