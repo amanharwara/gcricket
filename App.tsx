@@ -39,7 +39,7 @@ import {
   TouchableRipple,
   Appbar,
 } from "react-native-paper";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { Innings, Match, Player, PlayerScore, Team, store } from "./store";
 import { observer } from "mobx-react-lite";
@@ -235,18 +235,11 @@ const ScoreButton = ({
 };
 
 const PlayerScoreScreen = observer(
-  ({
-    navigation,
-    route,
-  }: StackScreenProps<RootStackParamList, "PlayerScore">) => {
+  ({ route }: StackScreenProps<RootStackParamList, "PlayerScore">) => {
     const theme = useTheme();
     const { playerScore, innings } = route.params;
 
-    useEffect(() => {
-      if (playerScore.out || innings.isComplete) {
-        navigation.goBack();
-      }
-    }, [playerScore.out, innings.isComplete]);
+    const disabled = playerScore.out || innings.isComplete;
 
     return (
       <View
@@ -298,9 +291,8 @@ const PlayerScoreScreen = observer(
             flexDirection: "row",
             flexWrap: "wrap",
             gap: 20,
-            pointerEvents:
-              playerScore.out || innings.isComplete ? "none" : "auto",
-            opacity: playerScore.out || innings.isComplete ? 0.5 : 1,
+            pointerEvents: disabled ? "none" : "auto",
+            opacity: disabled ? 0.5 : 1,
           }}
         >
           <ScoreButton
@@ -1191,10 +1183,16 @@ const NavHeader = observer(
     const theme = useTheme();
 
     const match =
+      route.name === "Match" &&
       route.params &&
       "id" in route.params &&
       typeof route.params.id === "string"
         ? store.matches.get(route.params.id)
+        : null;
+
+    const playerScore =
+      route.name === "PlayerScore" && route.params
+        ? (route.params as RootStackParamList["PlayerScore"]).playerScore
         : null;
 
     const title = getHeaderTitle(options, "Match");
@@ -1233,6 +1231,14 @@ const NavHeader = observer(
                 ],
               );
             }}
+            accessibilityLabel="Delete match"
+          />
+        )}
+        {playerScore && (
+          <Appbar.Action
+            icon="undo"
+            disabled={!playerScore.canUndo}
+            onPress={playerScore.undoLastBall}
           />
         )}
       </Appbar.Header>

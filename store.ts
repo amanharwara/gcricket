@@ -49,10 +49,16 @@ const PlayerScoreModel = types
       if (self.ballsFaced === 0) return 0;
       return (self.totalRuns / self.ballsFaced) * 100;
     },
+    get canUndo() {
+      return self.balls.length > 0;
+    },
   }))
   .actions((self) => ({
     addBall(runs: number) {
       self.balls.push(runs);
+    },
+    undoLastBall() {
+      self.balls.pop();
     },
   }));
 
