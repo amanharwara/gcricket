@@ -2,6 +2,7 @@ import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
   DrawerScreenProps,
+  DrawerHeaderProps,
   createDrawerNavigator,
 } from "@react-navigation/drawer";
 import {
@@ -47,6 +48,7 @@ import {
   StackScreenProps,
   createStackNavigator,
 } from "@react-navigation/stack";
+import { getHeaderTitle } from "@react-navigation/elements";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -484,52 +486,6 @@ const MatchScorecard = observer(
     );
   },
 );
-
-const MatchHeader = observer(({ navigation, route }: StackHeaderProps) => {
-  const theme = useTheme();
-
-  const match =
-    route.params && "id" in route.params && typeof route.params.id === "string"
-      ? store.matches.get(route.params.id)
-      : null;
-
-  return (
-    <Appbar.Header
-      style={{
-        backgroundColor: theme.colors.elevation.level2,
-      }}
-    >
-      <Appbar.BackAction onPress={() => navigation.goBack()} />
-      <Appbar.Content title="Match" />
-      <Appbar.Action
-        icon="delete"
-        disabled={!match}
-        onPress={() => {
-          if (!match) return;
-
-          Alert.alert(
-            "Confirm",
-            "Are you sure you want to delete this match?",
-            [
-              {
-                text: "Cancel",
-                style: "cancel",
-              },
-              {
-                text: "Delete",
-                onPress: () => {
-                  store.deleteMatch(match.id);
-                  navigation.goBack();
-                },
-                style: "destructive",
-              },
-            ],
-          );
-        }}
-      />
-    </Appbar.Header>
-  );
-});
 
 const MatchScreen = observer(
   ({ route }: StackScreenProps<RootStackParamList, "Match">) => {
@@ -1167,8 +1123,14 @@ const PlayersScreen = observer(() => {
 });
 
 function DrawerItems(props: DrawerContentComponentProps) {
+  const theme = useTheme();
+
   return (
-    <DrawerContentScrollView>
+    <DrawerContentScrollView
+      style={{
+        backgroundColor: theme.colors.surfaceVariant,
+      }}
+    >
       <Drawer.Item
         label="Matches"
         onPress={() => props.navigation.navigate("Matches")}
@@ -1181,11 +1143,33 @@ function DrawerItems(props: DrawerContentComponentProps) {
   );
 }
 
+const DrawerHeader = ({ navigation, options }: DrawerHeaderProps) => {
+  const theme = useTheme();
+
+  const title = getHeaderTitle(options, "Match");
+
+  return (
+    <Appbar.Header
+      style={{
+        backgroundColor: theme.colors.surfaceVariant,
+      }}
+    >
+      <Appbar.Action icon="menu" onPress={() => navigation.openDrawer()} />
+      <Appbar.Content title={title} />
+    </Appbar.Header>
+  );
+};
+
 const MainScreen = observer(() => {
   const Drawer = createDrawerNavigator<DrawerParamList>();
 
   return (
-    <Drawer.Navigator drawerContent={(props) => <DrawerItems {...props} />}>
+    <Drawer.Navigator
+      drawerContent={(props) => <DrawerItems {...props} />}
+      screenOptions={{
+        header: (props) => <DrawerHeader {...props} />,
+      }}
+    >
       <Drawer.Screen
         name="Matches"
         component={MatchesScreen}
@@ -1202,9 +1186,65 @@ const MainScreen = observer(() => {
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+const NavHeader = observer(
+  ({ navigation, route, options }: StackHeaderProps) => {
+    const theme = useTheme();
+
+    const match =
+      route.params &&
+      "id" in route.params &&
+      typeof route.params.id === "string"
+        ? store.matches.get(route.params.id)
+        : null;
+
+    const title = getHeaderTitle(options, "Match");
+
+    return (
+      <Appbar.Header
+        style={{
+          backgroundColor: theme.colors.surfaceVariant,
+        }}
+      >
+        <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <Appbar.Content title={title} />
+        {match && (
+          <Appbar.Action
+            icon="delete"
+            disabled={!match}
+            onPress={() => {
+              if (!match) return;
+
+              Alert.alert(
+                "Confirm",
+                "Are you sure you want to delete this match?",
+                [
+                  {
+                    text: "Cancel",
+                    style: "cancel",
+                  },
+                  {
+                    text: "Delete",
+                    onPress: () => {
+                      store.deleteMatch(match.id);
+                      navigation.goBack();
+                    },
+                    style: "destructive",
+                  },
+                ],
+              );
+            }}
+          />
+        )}
+      </Appbar.Header>
+    );
+  },
+);
+
 function App() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+
+  const { theme: md3Theme } = useMaterial3Theme();
 
   const { LightTheme, DarkTheme } = adaptNavigationTheme({
     reactNavigationLight: NavigationDefaultTheme,
@@ -1217,6 +1257,7 @@ function App() {
     colors: {
       ...MD3LightTheme.colors,
       ...LightTheme.colors,
+      ...md3Theme.light,
     },
   };
 
@@ -1226,34 +1267,33 @@ function App() {
     colors: {
       ...MD3DarkTheme.colors,
       ...DarkTheme.colors,
+      ...md3Theme.dark,
+      background: "#000000",
     },
   };
 
-  const combinedTheme = isDarkMode ? CombinedDarkTheme : CombinedDefaultTheme;
+  const navigationTheme = isDarkMode ? CombinedDarkTheme : CombinedDefaultTheme;
 
-  const { theme: mdTheme } = useMaterial3Theme();
-  const theme = useMemo(() => {
+  const paperTheme = useMemo(() => {
     return isDarkMode
-      ? { ...MD3DarkTheme, colors: mdTheme.dark }
-      : { ...MD3LightTheme, colors: mdTheme.light };
-  }, [isDarkMode, mdTheme]);
+      ? { ...MD3DarkTheme, colors: { ...md3Theme.dark, background: "#000000" } }
+      : { ...MD3LightTheme, colors: md3Theme.light };
+  }, [isDarkMode, md3Theme]);
 
   return (
-    <PaperProvider theme={theme}>
-      <NavigationContainer theme={combinedTheme} ref={navigationRef}>
-        <Stack.Navigator>
+    <PaperProvider theme={paperTheme}>
+      <NavigationContainer theme={navigationTheme} ref={navigationRef}>
+        <Stack.Navigator
+          screenOptions={{
+            header: (props) => <NavHeader {...props} />,
+          }}
+        >
           <Stack.Screen
             name="Main"
             component={MainScreen}
             options={{ headerShown: false }}
           />
-          <Stack.Screen
-            name="Match"
-            component={MatchScreen}
-            options={{
-              header: (props) => <MatchHeader {...props} />,
-            }}
-          />
+          <Stack.Screen name="Match" component={MatchScreen} />
           <Stack.Screen
             name="PlayerScore"
             component={PlayerScoreScreen}
