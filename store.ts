@@ -5,6 +5,7 @@ import { autorun } from "mobx";
 import { MMKV } from "react-native-mmkv";
 
 const isDev = process.env.NODE_ENV === "development";
+const isOdd = (num: number) => num % 2 === 1;
 
 const PlayerModel = types.model({
   id: types.identifier,
@@ -258,18 +259,24 @@ const RootStore = types
         () => Math.random() - 0.5,
       );
 
+      if (players.length < 2) return;
+
+      const commonPlayer = isOdd(players.length) ? players.pop()! : null;
+
       const team1 = TeamModel.create({
         id: nanoid(),
         players: players
           .slice(0, players.length / 2)
-          .map((player) => player.id),
+          .map((player) => player.id)
+          .concat(commonPlayer ? [commonPlayer.id] : []),
       });
 
       const team2 = TeamModel.create({
         id: nanoid(),
         players: players
           .slice(players.length / 2, players.length)
-          .map((player) => player.id),
+          .map((player) => player.id)
+          .concat(commonPlayer ? [commonPlayer.id] : []),
       });
 
       const match = MatchModel.create({
