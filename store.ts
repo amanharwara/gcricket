@@ -126,6 +126,10 @@ const InningsModel = types
       const playerScore = self.scores.find((score) => score.player === player)!;
       if (wicket) {
         playerScore.out = true;
+        const nextPlayer = self.playersYetToBat[0];
+        if (nextPlayer) {
+          self.addPlayerScore(nextPlayer);
+        }
       }
     },
     undoLastBall() {
