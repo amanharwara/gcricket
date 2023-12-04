@@ -285,7 +285,7 @@ const PlayerScoreScreen = observer(
             ({playerScore.ballsFaced})
           </Text>
         </View>
-        {innings.balls.length > 0 && (
+        {playerScore.balls.length > 0 && (
           <ScrollView
             horizontal
             style={{
