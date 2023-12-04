@@ -39,7 +39,7 @@ import {
   TouchableRipple,
   Appbar,
 } from "react-native-paper";
-import { ReactNode, useMemo, useState } from "react";
+import { Fragment, ReactNode, useMemo, useState } from "react";
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { Innings, Match, Player, PlayerScore, Team, store } from "./store";
 import { observer } from "mobx-react-lite";
@@ -285,6 +285,89 @@ const PlayerScoreScreen = observer(
             ({playerScore.ballsFaced})
           </Text>
         </View>
+        {playerScore.balls.length > 0 && (
+          <ScrollView
+            horizontal
+            style={{
+              paddingVertical: 15,
+              borderTopWidth: 2,
+              borderTopColor: theme.colors.backdrop,
+              borderBottomWidth: 2,
+              borderBottomColor: theme.colors.backdrop,
+              flexGrow: 0,
+            }}
+            contentContainerStyle={{
+              display: "flex",
+              flexDirection: "row-reverse",
+              gap: 10,
+              justifyContent: "flex-end",
+              alignItems: "center",
+            }}
+          >
+            {playerScore.balls.map((ball, index, array) => {
+              const isFirstBallOfNewOver =
+                (index + 1 - 1) % 6 === 0 && index !== 0;
+
+              const isLastBallOfInnings = index === array.length - 1;
+
+              const isDot = ball === 0;
+              const isFour = ball === 4;
+              const isSix = ball === 6;
+              const isBoundary = isFour || isSix;
+              const isWicket = isLastBallOfInnings && playerScore.out && isDot;
+
+              return (
+                <Fragment key={index}>
+                  {isFirstBallOfNewOver && (
+                    <View
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: theme.colors.surface,
+                        marginHorizontal: 5,
+                      }}
+                    />
+                  )}
+                  <View
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 40,
+                      height: 40,
+                      borderRadius: theme.roundness,
+                      backgroundColor: isSix
+                        ? "#7a41d8"
+                        : isFour
+                        ? "#08774f"
+                        : isWicket
+                        ? MD3Colors.error40
+                        : theme.colors.primary,
+                    }}
+                    key={index}
+                  >
+                    <Text
+                      style={{
+                        fontSize: theme.fonts.bodyLarge.fontSize,
+                        fontWeight:
+                          isBoundary || isWicket
+                            ? "bold"
+                            : theme.fonts.bodyLarge.fontWeight,
+                        color:
+                          isBoundary || isWicket
+                            ? "white"
+                            : theme.colors.onPrimary,
+                      }}
+                    >
+                      {isWicket ? "W" : isDot ? "●" : ball}
+                    </Text>
+                  </View>
+                </Fragment>
+              );
+            })}
+          </ScrollView>
+        )}
         <View
           style={{
             display: "flex",
@@ -598,7 +681,6 @@ const MatchScreen = observer(
                     innings,
                   });
                 }}
-                disabled={score.out || innings.isComplete}
               >
                 <View
                   style={{
