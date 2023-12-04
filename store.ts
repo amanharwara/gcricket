@@ -59,6 +59,7 @@ const PlayerScoreModel = types
     },
     undoLastBall() {
       self.balls.pop();
+      if (self.out) self.out = false;
     },
   }));
 
