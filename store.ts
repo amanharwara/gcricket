@@ -33,14 +33,19 @@ export type Team = Instance<typeof TeamModel>;
 const PlayerScoreModel = types
   .model({
     player: types.reference(PlayerModel),
-    balls: types.array(types.number),
     out: types.boolean,
   })
   .views((self) => ({
-    get totalRuns() {
-      return self.balls.reduce((acc, curr) => acc + curr, 0);
+    get balls(): Ball[] {
+      const parentInnings = getParentOfType(self, InningsModel);
+      return parentInnings.balls.filter((ball) => ball.player === self.player);
     },
-    get ballsFaced() {
+  }))
+  .views((self) => ({
+    get totalRuns(): number {
+      return self.balls.reduce((acc, curr) => acc + curr.runs, 0);
+    },
+    get ballsFaced(): number {
       return self.balls.length;
     },
   }))
@@ -49,45 +54,36 @@ const PlayerScoreModel = types
       if (self.ballsFaced === 0) return 0;
       return (self.totalRuns / self.ballsFaced) * 100;
     },
-    get canUndo() {
-      return self.balls.length > 0;
-    },
-  }))
-  .actions((self) => ({
-    addBall(runs: number) {
-      self.balls.push(runs);
-    },
-    undoLastBall() {
-      self.balls.pop();
-      if (self.out) self.out = false;
-    },
   }));
 
 export type PlayerScore = Instance<typeof PlayerScoreModel>;
+
+const BallModel = types.model({
+  runs: types.number,
+  wicket: types.boolean,
+  player: types.reference(PlayerModel),
+});
+
+export type Ball = Instance<typeof BallModel>;
 
 const InningsModel = types
   .model({
     id: types.identifier,
     scores: types.array(PlayerScoreModel),
     team: types.reference(TeamModel),
+    balls: types.array(BallModel),
     oversToPlay: types.number,
     declared: types.boolean,
   })
   .views((self) => ({
     get totalRuns() {
-      return self.scores.reduce(
-        (acc, curr) => acc + curr.balls.reduce((acc, curr) => acc + curr, 0),
-        0,
-      );
+      return self.balls.reduce((acc, curr) => acc + curr.runs, 0);
     },
     get totalWickets() {
       return self.scores.reduce((acc, curr) => acc + (curr.out ? 1 : 0), 0);
     },
     get oversPlayed() {
-      const totalNumberOfBalls = self.scores.reduce(
-        (acc, curr) => acc + curr.balls.length,
-        0,
-      );
+      const totalNumberOfBalls = self.balls.length;
       return Math.floor(totalNumberOfBalls / 6) + (totalNumberOfBalls % 6) / 10;
     },
   }))
@@ -109,11 +105,14 @@ const InningsModel = types
         (player) => !self.scores.find((score) => score.player === player),
       );
     },
+    get canUndo() {
+      return self.balls.length > 0;
+    },
   }))
   .actions((self) => ({
     addPlayerScore(player: Player) {
       self.scores.push(
-        PlayerScoreModel.create({ player: player.id, balls: [], out: false }),
+        PlayerScoreModel.create({ player: player.id, out: false }),
       );
     },
     declare() {
@@ -121,14 +120,24 @@ const InningsModel = types
     },
   }))
   .actions((self) => ({
-    markPlayerOut(player: Player) {
-      const score = self.scores.find((score) => score.player === player);
-      if (!score) return;
-      score.addBall(0);
-      score.out = true;
-      const playersYetToBat = self.playersYetToBat;
-      if (playersYetToBat[0]) {
-        self.addPlayerScore(playersYetToBat[0]);
+    addBall(runs: number, wicket: boolean, player: Player) {
+      self.balls.push({ runs, wicket, player });
+      const playerScore = self.scores.find((score) => score.player === player)!;
+      if (wicket) {
+        playerScore.out = true;
+      }
+    },
+    undoLastBall() {
+      const lastBall = self.balls[self.balls.length - 1];
+      if (lastBall) {
+        const playerScore = self.scores.find(
+          (score) => score.player === lastBall.player,
+        );
+        if (!playerScore) return;
+        if (playerScore.out) {
+          playerScore.out = false;
+        }
+        self.balls.pop();
       }
     },
   }));

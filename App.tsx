@@ -54,8 +54,8 @@ const isDev = process.env.NODE_ENV === "development";
 
 type RootStackParamList = {
   Main: undefined;
-  Match: { id: string };
-  PlayerScore: { playerScore: PlayerScore; innings: Innings };
+  Match: { matchId: string };
+  PlayerScore: { matchId: string; playerScore: PlayerScore; innings: Innings };
 };
 
 type DrawerParamList = {
@@ -285,7 +285,7 @@ const PlayerScoreScreen = observer(
             ({playerScore.ballsFaced})
           </Text>
         </View>
-        {playerScore.balls.length > 0 && (
+        {innings.balls.length > 0 && (
           <ScrollView
             horizontal
             style={{
@@ -304,15 +304,17 @@ const PlayerScoreScreen = observer(
               alignItems: "center",
             }}
           >
-            {playerScore.balls.map((ball, index, array) => {
+            {innings.balls.map((ball, index, array) => {
+              if (ball.player !== playerScore.player) return null;
+
               const isFirstBallOfNewOver =
                 (index + 1 - 1) % 6 === 0 && index !== 0;
 
               const isLastBallOfInnings = index === array.length - 1;
 
-              const isDot = ball === 0;
-              const isFour = ball === 4;
-              const isSix = ball === 6;
+              const isDot = ball.runs === 0;
+              const isFour = ball.runs === 4;
+              const isSix = ball.runs === 6;
               const isBoundary = isFour || isSix;
               const isWicket = isLastBallOfInnings && playerScore.out && isDot;
 
@@ -360,7 +362,7 @@ const PlayerScoreScreen = observer(
                             : theme.colors.onPrimary,
                       }}
                     >
-                      {isWicket ? "W" : isDot ? "●" : ball}
+                      {isWicket ? "W" : isDot ? "●" : ball.runs}
                     </Text>
                   </View>
                 </Fragment>
@@ -391,7 +393,7 @@ const PlayerScoreScreen = observer(
                   {
                     text: "OK",
                     onPress: () => {
-                      innings.markPlayerOut(playerScore.player);
+                      innings.addBall(0, true, playerScore.player);
                     },
                   },
                 ],
@@ -405,35 +407,35 @@ const PlayerScoreScreen = observer(
           </ScoreButton>
           <ScoreButton
             onPress={() => {
-              playerScore.addBall(0);
+              innings.addBall(0, false, playerScore.player);
             }}
           >
             ●
           </ScoreButton>
           <ScoreButton
             onPress={() => {
-              playerScore.addBall(1);
+              innings.addBall(1, false, playerScore.player);
             }}
           >
             1
           </ScoreButton>
           <ScoreButton
             onPress={() => {
-              playerScore.addBall(2);
+              innings.addBall(2, false, playerScore.player);
             }}
           >
             2
           </ScoreButton>
           <ScoreButton
             onPress={() => {
-              playerScore.addBall(4);
+              innings.addBall(4, false, playerScore.player);
             }}
           >
             4
           </ScoreButton>
           <ScoreButton
             onPress={() => {
-              playerScore.addBall(6);
+              innings.addBall(6, false, playerScore.player);
             }}
           >
             6
@@ -566,9 +568,9 @@ const MatchScreen = observer(
   ({ route }: StackScreenProps<RootStackParamList, "Match">) => {
     const theme = useTheme();
 
-    const { id } = route.params;
+    const { matchId } = route.params;
 
-    const match = store.matches.get(id);
+    const match = store.matches.get(matchId);
 
     if (!match) {
       return <Text>Match not found</Text>;
@@ -679,6 +681,7 @@ const MatchScreen = observer(
                   navigationRef.navigate("PlayerScore", {
                     playerScore: score,
                     innings,
+                    matchId,
                   });
                 }}
               >
@@ -892,7 +895,7 @@ const MatchesScreen = observer(
               {matches.map((match) => (
                 <TouchableRipple
                   onPress={() => {
-                    navigationRef.navigate("Match", { id: match.id });
+                    navigationRef.navigate("Match", { matchId: match.id });
                   }}
                   key={match.id}
                 >
@@ -1265,17 +1268,13 @@ const NavHeader = observer(
     const theme = useTheme();
 
     const match =
-      route.name === "Match" &&
       route.params &&
-      "id" in route.params &&
-      typeof route.params.id === "string"
-        ? store.matches.get(route.params.id)
+      "matchId" in route.params &&
+      typeof route.params.matchId === "string"
+        ? store.matches.get(route.params.matchId)
         : null;
 
-    const playerScore =
-      route.name === "PlayerScore" && route.params
-        ? (route.params as RootStackParamList["PlayerScore"]).playerScore
-        : null;
+    const currentInnings = match ? match.currentInnings : null;
 
     const title = getHeaderTitle(options, "Match");
 
@@ -1287,7 +1286,7 @@ const NavHeader = observer(
       >
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={title} />
-        {match && (
+        {match && route.name !== "PlayerScore" && (
           <Appbar.Action
             icon="delete"
             disabled={!match}
@@ -1316,11 +1315,11 @@ const NavHeader = observer(
             accessibilityLabel="Delete match"
           />
         )}
-        {playerScore && (
+        {currentInnings && route.name !== "Match" && (
           <Appbar.Action
             icon="undo"
-            disabled={!playerScore.canUndo}
-            onPress={playerScore.undoLastBall}
+            disabled={!currentInnings.canUndo}
+            onPress={currentInnings.undoLastBall}
           />
         )}
       </Appbar.Header>
