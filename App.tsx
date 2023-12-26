@@ -307,8 +307,8 @@ const PlayerScoreScreen = observer(
             {innings.balls.map((ball, index, array) => {
               if (ball.player !== playerScore.player) return null;
 
-              const isFirstBallOfNewOver =
-                (index + 1 - 1) % 6 === 0 && index !== 0;
+              const isLastBallOfPreviousOver =
+                index > 1 && (index + 1) % 6 === 0;
 
               const isLastBallOfInnings = index === array.length - 1;
 
@@ -320,17 +320,6 @@ const PlayerScoreScreen = observer(
 
               return (
                 <Fragment key={index}>
-                  {isFirstBallOfNewOver && (
-                    <View
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 5,
-                        backgroundColor: theme.colors.surface,
-                        marginHorizontal: 5,
-                      }}
-                    />
-                  )}
                   <View
                     style={{
                       display: "flex",
@@ -365,6 +354,17 @@ const PlayerScoreScreen = observer(
                       {isWicket ? "W" : isDot ? "●" : ball.runs}
                     </Text>
                   </View>
+                  {isLastBallOfPreviousOver && (
+                    <View
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: theme.colors.secondary,
+                        marginHorizontal: 5,
+                      }}
+                    />
+                  )}
                 </Fragment>
               );
             })}
